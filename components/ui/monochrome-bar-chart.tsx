@@ -62,14 +62,15 @@ export function MonochromeBarChart({
   title,
   subtitle,
   changePercent,
-  changeType = "increase"
+  changeType = "increase",
 }: MonochromeBarChartProps) {
-  const chartData = (data && data.length > 0
-    ? data
-    : [
-        { label: "A", value: 10 },
-        { label: "B", value: 5 },
-      ]
+  const chartData = (
+    data && data.length > 0
+      ? data
+      : [
+          { label: "A", value: 10 },
+          { label: "B", value: 5 },
+        ]
   ).map((d) => ({ month: d.label, desktop: d.value }));
 
   const [activeIndex, setActiveIndex] = React.useState<number | undefined>(
@@ -84,7 +85,7 @@ export function MonochromeBarChart({
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
+        <CardTitle className="flex items-center justify-center gap-2 text-center">
           <span
             className={cn(jetBrainsMono.className, "text-2xl tracking-tighter")}
           >
@@ -101,15 +102,18 @@ export function MonochromeBarChart({
             </Badge>
           )}
         </CardTitle>
-        <CardDescription>{subtitle ?? "Distribution by subject"}</CardDescription>
+        <CardDescription className="text-center">
+          {subtitle ?? "Distribution by subject"}
+        </CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="flex justify-center">
         <AnimatePresence mode="wait">
-          <ChartContainer config={chartConfig}>
+          <ChartContainer config={chartConfig} className="h-[300px] w-full max-w-4xl">
             <BarChart
               accessibilityLayer
               data={chartData}
               onMouseLeave={() => setActiveIndex(undefined)}
+              margin={{ left: 20, right: 20, top: 20, bottom: 20 }}
             >
               <XAxis
                 dataKey="month"
@@ -120,6 +124,7 @@ export function MonochromeBarChart({
               />
               <Bar
                 dataKey="desktop"
+               
                 fill="var(--color-desktop)"
                 shape={
                   <CustomBar
@@ -196,3 +201,5 @@ const CustomBar = (props: CustomBarProps) => {
     </g>
   );
 };
+
+

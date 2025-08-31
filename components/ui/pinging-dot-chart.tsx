@@ -98,6 +98,7 @@ export function PingingDotChart({
             />
             <YAxis
               domain={[0, 100]}
+              ticks={[0, 10, 20, 30, 40, 50]}
               tickLine={false}
               axisLine={false}
               tickMargin={8}

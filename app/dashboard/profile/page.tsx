@@ -118,80 +118,61 @@ export default function ProfilePage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-6">
-        <div className="max-w-4xl mx-auto space-y-8">
+      <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-100 flex justify-center items-center py-20">
+        <div className="w-full max-w-2xl space-y-8">
           {/* Header Skeleton */}
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="space-y-2">
-                <div className="h-10 bg-slate-200 rounded-lg w-64 animate-pulse"></div>
-                <div className="h-4 bg-slate-200 rounded w-80 animate-pulse"></div>
-              </div>
-              <div className="hidden md:flex items-center space-x-2">
-                <div className="w-4 h-4 bg-slate-200 rounded animate-pulse"></div>
-                <div className="h-4 bg-slate-200 rounded w-24 animate-pulse"></div>
-              </div>
+          <div className="space-y-4 text-center">
+            <div className="space-y-2">
+              <div className="h-10 bg-green-200 rounded-lg w-64 mx-auto animate-pulse"></div>
+              <div className="h-4 bg-emerald-200 rounded w-80 mx-auto animate-pulse"></div>
             </div>
           </div>
 
-          <div className="grid gap-8 lg:grid-cols-3">
-            {/* Avatar Skeleton */}
-            <div className="lg:col-span-1">
-              <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-sm">
-                <CardContent className="pt-6">
-                  <div className="flex flex-col items-center text-center space-y-4">
-                    <div className="w-24 h-24 rounded-full bg-slate-200 animate-pulse"></div>
+          {/* Profile Card Skeleton */}
+          <div className="w-full max-w-2xl">
+            <div className="border-0 shadow-lg bg-white/80 backdrop-blur-sm rounded-lg p-6">
+              {/* Header Skeleton */}
+              <div className="pb-6">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-8 h-8 rounded-lg bg-green-200 animate-pulse"></div>
                     <div className="space-y-2">
-                      <div className="h-6 bg-slate-200 rounded w-48 animate-pulse"></div>
-                      <div className="h-4 bg-slate-200 rounded w-40 animate-pulse"></div>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <div className="w-2 h-2 rounded-full bg-slate-200 animate-pulse"></div>
-                      <div className="h-4 bg-slate-200 rounded w-12 animate-pulse"></div>
+                      <div className="h-6 bg-green-200 rounded w-48 animate-pulse"></div>
+                      <div className="h-4 bg-emerald-200 rounded w-40 animate-pulse"></div>
                     </div>
                   </div>
-                </CardContent>
-              </Card>
-            </div>
+                  <div className="h-8 bg-green-200 rounded w-24 animate-pulse"></div>
+                </div>
+              </div>
 
-            {/* Profile Form Skeleton */}
-            <div className="lg:col-span-2">
-              <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-sm">
-                <CardHeader className="pb-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-3">
-                      <div className="w-8 h-8 rounded-lg bg-slate-200 animate-pulse"></div>
-                      <div className="space-y-2">
-                        <div className="h-6 bg-slate-200 rounded w-48 animate-pulse"></div>
-                        <div className="h-4 bg-slate-200 rounded w-40 animate-pulse"></div>
-                      </div>
+              {/* Form Content Skeleton */}
+              <div className="space-y-6">
+                {/* Name Fields */}
+                <div className="grid gap-6 md:grid-cols-2">
+                  {[1, 2].map((i) => (
+                    <div key={i} className="space-y-3">
+                      <div className="h-4 bg-green-200 rounded w-20 animate-pulse"></div>
+                      <div className="h-10 bg-emerald-100 rounded animate-pulse"></div>
                     </div>
-                    <div className="h-8 bg-slate-200 rounded w-24 animate-pulse"></div>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  <div className="grid gap-6 md:grid-cols-2">
-                    {[1, 2].map((i) => (
-                      <div key={i} className="space-y-3">
-                        <div className="h-4 bg-slate-200 rounded w-20 animate-pulse"></div>
-                        <div className="h-10 bg-slate-200 rounded animate-pulse"></div>
-                      </div>
-                    ))}
-                  </div>
-                  <div className="space-y-3">
-                    <div className="h-4 bg-slate-200 rounded w-24 animate-pulse"></div>
-                    <div className="h-10 bg-slate-200 rounded animate-pulse"></div>
-                  </div>
-                  <div className="grid gap-6 md:grid-cols-2">
-                    {[1, 2].map((i) => (
-                      <div key={i} className="space-y-3">
-                        <div className="h-4 bg-slate-200 rounded w-16 animate-pulse"></div>
-                        <div className="h-12 bg-slate-200 rounded-lg animate-pulse"></div>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
+                  ))}
+                </div>
+
+                {/* Email Field */}
+                <div className="space-y-3">
+                  <div className="h-4 bg-green-200 rounded w-24 animate-pulse"></div>
+                  <div className="h-10 bg-emerald-100 rounded animate-pulse"></div>
+                </div>
+
+                {/* Role and Member Since Fields */}
+                <div className="grid gap-6 md:grid-cols-2">
+                  {[1, 2].map((i) => (
+                    <div key={i} className="space-y-3">
+                      <div className="h-4 bg-green-200 rounded w-16 animate-pulse"></div>
+                      <div className="h-12 bg-emerald-100 rounded-lg animate-pulse"></div>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -201,28 +182,26 @@ export default function ProfilePage() {
 
   if (!profile) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-100 p-6">
-        <div className="max-w-4xl mx-auto space-y-8">
-          <div className="space-y-4">
-            <div className="text-center space-y-4">
-              <div className="w-16 h-16 rounded-full bg-red-100 flex items-center justify-center mx-auto">
-                <User className="h-8 w-8 text-red-600" />
-              </div>
-              <div>
-                <h1 className="text-4xl font-bold tracking-tight bg-gradient-to-r from-slate-900 to-slate-600 bg-clip-text text-transparent">
-                  Profile Error
-                </h1>
-                <p className="text-slate-600 mt-2">
-                  Failed to load profile data. Please try again.
-                </p>
-              </div>
-              <Button
-                onClick={() => window.location.reload()}
-                className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700"
-              >
-                Reload Page
-              </Button>
+      <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-100 flex justify-center items-center py-20">
+        <div className="w-full max-w-2xl space-y-8">
+          <div className="space-y-4 text-center">
+            <div className="w-16 h-16 rounded-full bg-red-100 flex items-center justify-center mx-auto">
+              <User className="h-8 w-8 text-red-600" />
             </div>
+            <div>
+              <h1 className="text-4xl font-bold tracking-tight bg-gradient-to-r from-green-900 to-emerald-600 bg-clip-text text-transparent">
+                Profile Error
+              </h1>
+              <p className="text-slate-600 mt-2">
+                Failed to load profile data. Please try again.
+              </p>
+            </div>
+            <Button
+              onClick={() => window.location.reload()}
+              className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700"
+            >
+              Reload Page
+            </Button>
           </div>
         </div>
       </div>

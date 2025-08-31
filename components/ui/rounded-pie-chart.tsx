@@ -45,8 +45,25 @@ const chartData = [
 ];
 
 const chartConfig = {
-  value: {
-    label: "Value",
+  chrome: {
+    label: "Chrome",
+    color: "hsl(142, 76%, 36%)", // Dark green
+  },
+  safari: {
+    label: "Safari", 
+    color: "hsl(142, 76%, 46%)", // Medium green
+  },
+  firefox: {
+    label: "Firefox",
+    color: "hsl(142, 76%, 56%)", // Light green
+  },
+  edge: {
+    label: "Edge",
+    color: "hsl(142, 76%, 66%)", // Lighter green
+  },
+  other: {
+    label: "Other",
+    color: "hsl(142, 76%, 76%)", // Very light green
   },
 } satisfies ChartConfig;
 
@@ -57,11 +74,15 @@ export function RoundedPieChart({
   changePercent,
   changeType = "increase"
 }: RoundedPieChartProps) {
-  const chartData = (data && data.length > 0 ? data : fallbackData).map((d, idx) => ({
-    label: d.label,
-    value: d.value,
-    fill: `var(--chart-${(idx % 5) + 1})`,
-  }));
+  const chartData = (data && data.length > 0 ? data : fallbackData).map((d, idx) => {
+    const colorKeys = ['chrome', 'safari', 'firefox', 'edge', 'other'];
+    const colorKey = colorKeys[idx % colorKeys.length];
+    return {
+      label: d.label,
+      value: d.value,
+      fill: `var(--color-${colorKey})`,
+    };
+  });
   return (
     <Card className="flex flex-col">
       <CardHeader className="items-center pb-0">
@@ -90,7 +111,7 @@ export function RoundedPieChart({
       <CardContent className="flex-1 pb-0">
         <ChartContainer
           config={chartConfig}
-          className="[&_.recharts-text]:fill-background mx-auto aspect-square max-h-[250px]"
+          className="[&_.recharts-text]:fill-background mx-auto aspect-square max-h-[300px]"
         >
           <PieChart>
             <ChartTooltip

@@ -42,24 +42,16 @@ export function GlowingStrokeRadarChart({ data }: GlowingStrokeRadarChartProps) 
     <Card>
       <CardHeader className="items-center pb-4">
         <CardTitle className="flex items-center gap-2">
-          <div className="w-3 h-3 rounded-full bg-gradient-to-r from-blue-500 to-purple-600"></div>
-          Student Distribution by Grade
-          <Badge
-            variant="outline"
-            className="text-blue-600 bg-blue-500/10 border-blue-200 ml-2"
-          >
-            <TrendingUp className="h-4 w-4" />
-            <span>{totalStudents} total</span>
-          </Badge>
+         
+          Student Distribution 
+         
         </CardTitle>
-        <CardDescription className="text-center">
-          Student enrollment across {data.length} grade levels • Avg: {avgStudents} per grade
-        </CardDescription>
+        
       </CardHeader>
       <CardContent className="pb-0">
         <ChartContainer
           config={chartConfig}
-          className="mx-auto aspect-square max-h-[280px] min-h-[280px]"
+          className="mx-auto aspect-square max-h-[300px] min-h-[300px]"
         >
           <RadarChart data={data}>
             <ChartTooltip
@@ -72,9 +64,10 @@ export function GlowingStrokeRadarChart({ data }: GlowingStrokeRadarChartProps) 
               className="text-xs"
             />
             <PolarGrid
-              strokeDasharray="2 2"
-              stroke="hsl(var(--border))"
+              strokeDasharray="1 1"
+              stroke="hsl(var(--muted-foreground))"
               strokeOpacity={0.3}
+              strokeWidth={1}
             />
             <Radar
               stroke="url(#radarGradient)"

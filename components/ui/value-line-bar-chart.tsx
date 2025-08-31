@@ -1,7 +1,7 @@
 "use client";
 
-import { TrendingUp } from "lucide-react";
-import { Bar, BarChart, Cell, XAxis, ReferenceLine } from "recharts";
+import { TrendingUp, TrendingDown } from "lucide-react";
+import { Bar, BarChart, Cell, XAxis, ReferenceLine, LabelList, YAxis } from "recharts";
 import React from "react";
 import { AnimatePresence } from "motion/react";
 import {
@@ -11,7 +11,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { ChartConfig, ChartContainer } from "@/components/ui/chart";
+import { ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { JetBrains_Mono } from "next/font/google";
@@ -50,7 +50,36 @@ const chartConfig = {
   },
 } satisfies ChartConfig;
 
-export function ValueLineBarChart() {
+type ValueLineBarChartProps = {
+  data?: Array<{ month: string; desktop: number }>;
+  title?: string;
+  subtitle?: string;
+  changePercent?: string;
+  changeType?: "increase" | "decrease";
+};
+
+export function ValueLineBarChart({
+  data,
+  title,
+  subtitle,
+  changePercent,
+  changeType = "increase"
+}: ValueLineBarChartProps = {}) {
+  const chartData = data || [
+    { month: "January", desktop: 342 },
+    { month: "February", desktop: 676 },
+    { month: "March", desktop: 512 },
+    { month: "April", desktop: 629 },
+    { month: "May", desktop: 458 },
+    { month: "June", desktop: 781 },
+    { month: "July", desktop: 394 },
+    { month: "August", desktop: 924 },
+    { month: "September", desktop: 647 },
+    { month: "October", desktop: 532 },
+    { month: "November", desktop: 803 },
+    { month: "December", desktop: 271 },
+  ];
+
   const [activeIndex, setActiveIndex] = React.useState<number | undefined>(
     undefined
   );
@@ -84,6 +113,14 @@ export function ValueLineBarChart() {
     maxValueIndexSpring.set(maxValueIndex.value);
   }, [maxValueIndex.value, maxValueIndexSpring]);
 
+  const BAR_COLORS = [
+    "hsl(var(--chart-1))",
+    "hsl(var(--chart-2))",
+    "hsl(var(--chart-3))",
+    "hsl(var(--chart-4))",
+    "hsl(var(--chart-5))",
+  ];
+
   return (
     <Card>
       <CardHeader>
@@ -91,14 +128,20 @@ export function ValueLineBarChart() {
           <span
             className={cn(jetBrainsMono.className, "text-2xl tracking-tighter")}
           >
-            ${maxValueIndex.value}
+            {title ?? "Key Performance Indicators"}
           </span>
-          <Badge variant="secondary">
-            <TrendingUp className="h-4 w-4" />
-            <span>5.2%</span>
-          </Badge>
+          {changePercent && (
+            <Badge variant="secondary">
+              {changeType === "increase" ? (
+                <TrendingUp className="h-4 w-4" />
+              ) : (
+                <TrendingDown className="h-4 w-4" />
+              )}
+              <span>{changePercent}</span>
+            </Badge>
+          )}
         </CardTitle>
-        <CardDescription>vs. last quarter</CardDescription>
+        <CardDescription>{subtitle ?? "Maximum values across different educational metrics"}</CardDescription>
       </CardHeader>
       <CardContent>
         <AnimatePresence mode="wait">
@@ -118,11 +161,30 @@ export function ValueLineBarChart() {
                 axisLine={false}
                 tickFormatter={(value) => value.slice(0, 3)}
               />
-              <Bar dataKey="desktop" fill="var(--color-desktop)" radius={4}>
+              <YAxis
+                hide={false}
+                domain={[0, (dataMax: number) => Math.ceil(dataMax * 1.1)]}
+                tickCount={5}
+                tickLine={false}
+                axisLine={false}
+                tickMargin={8}
+              />
+              <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
+              <defs>
+                {chartData.map((_, index) => (
+                  <linearGradient id={`kpi-bar-${index}`} x1="0" y1="0" x2="0" y2="1" key={index}>
+                    <stop offset="0%" stopColor={BAR_COLORS[index % BAR_COLORS.length]} stopOpacity={0.95} />
+                    <stop offset="100%" stopColor={BAR_COLORS[index % BAR_COLORS.length]} stopOpacity={0.6} />
+                  </linearGradient>
+                ))}
+              </defs>
+              <Bar dataKey="desktop" radius={[6, 6, 0, 0]} isAnimationActive>
+                <LabelList dataKey="desktop" position="top" className={cn(jetBrainsMono.className, "fill-foreground text-[10px]")} />
                 {chartData.map((_, index) => (
                   <Cell
                     className="duration-200"
-                    opacity={index === maxValueIndex.index ? 1 : 0.2}
+                    fill={`url(#kpi-bar-${index})`}
+                    opacity={index === maxValueIndex.index ? 1 : 0.6}
                     key={index}
                     onMouseEnter={() => setActiveIndex(index)}
                   />

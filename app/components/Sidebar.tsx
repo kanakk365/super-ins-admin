@@ -175,7 +175,7 @@ export default function Sidebar() {
         <div className="flex grow flex-col gap-y-5 overflow-y-auto border-r bg-card px-6 pb-4">
           <div className="flex h-16 shrink-0 items-center">
             <Building2 className="h-8 w-8 text-gradient-primary mr-3" />
-            <h1 className="text-xl font-bold text-foreground">
+            <h1 className="text-lg font-semibold text-foreground">
               Super Institution Admin
             </h1>
           </div>

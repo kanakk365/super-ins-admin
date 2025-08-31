@@ -10,23 +10,23 @@ import {
 } from "@/components/ui/card";
 import { ChartConfig, ChartContainer } from "@/components/ui/chart";
 import { Badge } from "@/components/ui/badge";
-import { TrendingDown } from "lucide-react";
+import { TrendingDown, TrendingUp } from "lucide-react";
 import { useRef, useState } from "react";
 import { useSpring, useMotionValueEvent } from "motion/react";
 
 const chartData = [
-  { month: "January", mobile: 245 },
-  { month: "February", mobile: 654 },
-  { month: "March", mobile: 387 },
-  { month: "April", mobile: 521 },
-  { month: "May", mobile: 412 },
-  { month: "June", mobile: 598 },
-  { month: "July", mobile: 312 },
-  { month: "August", mobile: 743 },
-  { month: "September", mobile: 489 },
-  { month: "October", mobile: 476 },
-  { month: "November", mobile: 687 },
-  { month: "December", mobile: 198 },
+  { month: "Jan", mobile: 24500 },
+  { month: "Feb", mobile: 32100 },
+  { month: "Mar", mobile: 38700 },
+  { month: "Apr", mobile: 45200 },
+  { month: "May", mobile: 52100 },
+  { month: "Jun", mobile: 58900 },
+  { month: "Jul", mobile: 62300 },
+  { month: "Aug", mobile: 68900 },
+  { month: "Sep", mobile: 74500 },
+  { month: "Oct", mobile: 81200 },
+  { month: "Nov", mobile: 87600 },
+  { month: "Dec", mobile: 93400 },
 ];
 
 const chartConfig = {
@@ -58,13 +58,13 @@ export function ClippedAreaChart() {
     <Card>
       <CardHeader>
         <CardTitle>
-          ${springY.get().toFixed(0)}
+          ${(springY.get() / 1000).toFixed(0)}k
           <Badge variant="secondary" className="ml-2">
-            <TrendingDown className="h-4 w-4" />
-            <span>-5.2%</span>
+            <TrendingUp className="h-4 w-4" />
+            <span>+18.7%</span>
           </Badge>
         </CardTitle>
-        <CardDescription>Total revenue for last year</CardDescription>
+        <CardDescription>Monthly revenue growth over the past year</CardDescription>
       </CardHeader>
       <CardContent>
         <ChartContainer
@@ -142,7 +142,7 @@ export function ClippedAreaChart() {
               textAnchor="middle"
               fill="var(--primary-foreground)"
             >
-              ${springY.get().toFixed(0)}
+              ${(springY.get() / 1000).toFixed(0)}k
             </text>
             {/* this is a ghost line behind graph */}
             <Area

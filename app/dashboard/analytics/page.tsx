@@ -16,7 +16,13 @@ import {
   Building2,
   PieChart,
 } from "lucide-react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { apiClient, Institution } from "@/lib/api";
 import { useToast } from "@/components/ui/toaster";
@@ -26,7 +32,9 @@ import { MonochromeBarChart } from "@/components/ui/monochrome-bar-chart";
 import { PingingDotChart } from "@/components/ui/pinging-dot-chart";
 import { RainbowGlowGradientLineChart } from "@/components/ui/rainbow-glow-gradient-line";
 import { RoundedPieChart } from "@/components/ui/rounded-pie-chart";
+import { ClippedAreaChart } from "@/components/ui/clipped-area-chart";
 import { ValueLineBarChart } from "@/components/ui/value-line-bar-chart";
+import { IncreaseSizePieChart } from "@/components/ui/increase-size-pie-chart";
 
 interface StatsData {
   totals: {
@@ -206,7 +214,7 @@ function AnalyticsPageContent() {
         // Hardcode specific institution ID
         const hardcodedInstitutionId = "cmcx8sm3y0000qe0r6xjq6imo";
         const targetInstitution = institutionsResponse.data.data.find(
-          (inst) => inst.id === hardcodedInstitutionId,
+          (inst) => inst.id === hardcodedInstitutionId
         );
 
         if (targetInstitution) {
@@ -238,7 +246,7 @@ function AnalyticsPageContent() {
     try {
       setIsLoadingStats(true);
       const statsResponse = await apiClient.getInstitutionStats(
-        "cmcx8sm3y0000qe0r6xjq6imo",
+        "cmcx8sm3y0000qe0r6xjq6imo"
       );
       setStatsData(statsResponse.data);
     } catch (error) {
@@ -333,13 +341,16 @@ function AnalyticsPageContent() {
       : "0";
 
   // Calculate change percentages from backend data
-  const calculateChange = (current: number, previous: number): { change: string; changeType: "increase" | "decrease" } => {
+  const calculateChange = (
+    current: number,
+    previous: number
+  ): { change: string; changeType: "increase" | "decrease" } => {
     if (previous === 0) return { change: "+0%", changeType: "increase" };
     const percentChange = ((current - previous) / previous) * 100;
     const sign = percentChange >= 0 ? "+" : "";
     return {
       change: `${sign}${percentChange.toFixed(1)}%`,
-      changeType: percentChange >= 0 ? "increase" : "decrease"
+      changeType: percentChange >= 0 ? "increase" : "decrease",
     };
   };
 
@@ -349,28 +360,40 @@ function AnalyticsPageContent() {
       name: "Total Students",
       value: statsData.totals.students.toString(),
       icon: Users,
-      ...calculateChange(statsData.totals.students, Math.max(0, statsData.totals.students - 2)), // Simulate previous period
+      ...calculateChange(
+        statsData.totals.students,
+        Math.max(0, statsData.totals.students - 2)
+      ), // Simulate previous period
       description: "Active enrolled students",
     },
     {
       name: "Total Quizzes",
       value: statsData.totals.quizzes.toString(),
       icon: BookOpen,
-      ...calculateChange(statsData.totals.quizzes, Math.max(0, statsData.totals.quizzes - 5)), // Simulate previous period
+      ...calculateChange(
+        statsData.totals.quizzes,
+        Math.max(0, statsData.totals.quizzes - 5)
+      ), // Simulate previous period
       description: "Quizzes created this term",
     },
     {
       name: "Total Exams",
       value: statsData.totals.exams.toString(),
       icon: GraduationCap,
-      ...calculateChange(statsData.totals.exams, Math.max(0, statsData.totals.exams - 3)), // Simulate previous period
+      ...calculateChange(
+        statsData.totals.exams,
+        Math.max(0, statsData.totals.exams - 3)
+      ), // Simulate previous period
       description: "Exams scheduled",
     },
     {
       name: "Total Projects",
       value: statsData.totals.projects.toString(),
       icon: Target,
-      ...calculateChange(statsData.totals.projects, Math.max(0, statsData.totals.projects - 1)), // Simulate previous period
+      ...calculateChange(
+        statsData.totals.projects,
+        Math.max(0, statsData.totals.projects - 1)
+      ), // Simulate previous period
       description: "Active project assignments",
     },
   ];
@@ -388,90 +411,222 @@ function AnalyticsPageContent() {
 
   // Students by Grade/Class data for radar chart with enhanced dummy data
   const baseGrades = [
-    "1st Grade", "2nd Grade", "3rd Grade", "4th Grade", "5th Grade",
-    "6th Grade", "7th Grade", "8th Grade", "9th Grade", "10th Grade",
-    "11th Grade", "12th Grade", "UG", "PG"
+    "1st Grade",
+    "2nd Grade",
+    "3rd Grade",
+    "4th Grade",
+    "5th Grade",
+    "6th Grade",
+    "7th Grade",
+    "8th Grade",
+    "9th Grade",
+    "10th Grade",
+    "11th Grade",
+    "12th Grade",
+    "UG",
+    "PG",
   ];
 
-  const studentsPerGrade = baseGrades.map((gradeName) => {
-    // Find existing data from backend
-    const existingGrade = statsData.breakdown.gradesWithStrength.find(
-      (grade) => grade.grade === gradeName
-    );
-
-    // If we have backend data, use it
-    if (existingGrade && existingGrade.strength > 0) {
-      return {
-        grade: gradeName,
-        strength: existingGrade.strength,
-      };
-    }
-
-    // Otherwise, generate beautiful dummy data
-    const gradeIndex = baseGrades.indexOf(gradeName);
-    let dummyStrength = 0;
-
-    // Create realistic distribution patterns
-    if (gradeName.includes("Grade")) {
-      // Elementary and middle school: more students in lower grades
-      const gradeNum = parseInt(gradeName.split(" ")[0]);
-      if (gradeNum <= 5) {
-        dummyStrength = Math.floor(Math.random() * 15) + 8; // 8-22 students
-      } else if (gradeNum <= 8) {
-        dummyStrength = Math.floor(Math.random() * 12) + 6; // 6-17 students
-      } else {
-        dummyStrength = Math.floor(Math.random() * 10) + 4; // 4-13 students
-      }
-    } else if (gradeName === "UG") {
-      // Undergraduate: good number of students
-      dummyStrength = Math.floor(Math.random() * 20) + 15; // 15-34 students
-    } else if (gradeName === "PG") {
-      // Postgraduate: fewer students
-      dummyStrength = Math.floor(Math.random() * 8) + 3; // 3-10 students
-    }
-
-    return {
-      grade: gradeName,
-      strength: dummyStrength,
+  // Different dummy data sets for each organization
+  const getStudentsPerGradeData = (institutionId: string) => {
+    const dataSets = {
+      // Organization 1 - Balanced distribution
+      "org1": [
+        { grade: "1st ", strength: 18 },
+        { grade: "2nd ", strength: 22 },
+        { grade: "3rd ", strength: 19 },
+        { grade: "4th ", strength: 16 },
+        { grade: "5th ", strength: 21 },
+        { grade: "6th ", strength: 14 },
+        { grade: "7th ", strength: 17 },
+        { grade: "8th ", strength: 13 },
+        { grade: "9th ", strength: 12 },
+        { grade: "10th", strength: 11 },
+        { grade: "11th ", strength: 9 },
+        { grade: "12th", strength: 8 },
+        { grade: "UG", strength: 28 },
+        { grade: "PG", strength: 6 },
+      ],
+      // Organization 2 - Higher secondary focus
+      "org2": [
+        { grade: "1st ", strength: 12 },
+        { grade: "2nd ", strength: 15 },
+        { grade: "3rd ", strength: 18 },
+        { grade: "4th ", strength: 20 },
+        { grade: "5th ", strength: 22 },
+        { grade: "6th ", strength: 25 },
+        { grade: "7th ", strength: 28 },
+        { grade: "8th ", strength: 24 },
+        { grade: "9th ", strength: 30 },
+        { grade: "10th", strength: 35 },
+        { grade: "11th ", strength: 32 },
+        { grade: "12th", strength: 28 },
+        { grade: "UG", strength: 15 },
+        { grade: "PG", strength: 8 },
+      ],
+      // Organization 3 - University focus
+      "org3": [
+        { grade: "1st ", strength: 8 },
+        { grade: "2nd ", strength: 10 },
+        { grade: "3rd ", strength: 12 },
+        { grade: "4th ", strength: 14 },
+        { grade: "5th ", strength: 16 },
+        { grade: "6th ", strength: 18 },
+        { grade: "7th ", strength: 20 },
+        { grade: "8th ", strength: 22 },
+        { grade: "9th ", strength: 24 },
+        { grade: "10th", strength: 26 },
+        { grade: "11th ", strength: 28 },
+        { grade: "12th", strength: 30 },
+        { grade: "UG", strength: 45 },
+        { grade: "PG", strength: 25 },
+      ],
     };
-  }).filter((grade) => grade.strength > 0); // Only show grades with students
+
+    return dataSets[institutionId as keyof typeof dataSets] || dataSets.org1;
+  };
+
+  // Map institution IDs to data set keys
+  const getDataSetKey = (institutionId: string, institutions: Institution[]) => {
+    const index = institutions.findIndex(inst => inst.id === institutionId);
+    if (index === 0) return "org1";
+    if (index === 1) return "org2";
+    if (index === 2) return "org3";
+    return "org1"; // Default fallback
+  };
+
+  const dataSetKey = getDataSetKey(selectedInstitutionId, institutions);
+  const studentsPerGrade = getStudentsPerGradeData(dataSetKey);
 
   // Exams vs Quizzes by Subject for bar chart (top subjects)
-  const mergedBySubject = new Map<string, { subject: string; exams: number; quizzes: number }>();
+  const mergedBySubject = new Map<
+    string,
+    { subject: string; exams: number; quizzes: number }
+  >();
   statsData.assigned.exams.bySchoolSubject.forEach((e) => {
-    mergedBySubject.set(e.subject, { subject: e.subject, exams: e.count, quizzes: 0 });
+    mergedBySubject.set(e.subject, {
+      subject: e.subject,
+      exams: e.count,
+      quizzes: 0,
+    });
   });
   statsData.assigned.quizzes.bySchoolSubject.forEach((q) => {
     const existing = mergedBySubject.get(q.subject);
-    if (existing) existing.quizzes = q.count; else mergedBySubject.set(q.subject, { subject: q.subject, exams: 0, quizzes: q.count });
+    if (existing) existing.quizzes = q.count;
+    else
+      mergedBySubject.set(q.subject, {
+        subject: q.subject,
+        exams: 0,
+        quizzes: q.count,
+      });
   });
-  const subjectData = Array.from(mergedBySubject.values())
-    .sort((a,b) => b.exams + b.quizzes - (a.exams + a.quizzes))
-    .slice(0, 12)
-    .map((s) => ({ label: s.subject.length > 20 ? s.subject.slice(0,20) + "..." : s.subject, value: s.exams + s.quizzes }));
+  // Different subject data sets for each organization
+  const getSubjectData = (institutionId: string) => {
+    const dataSets = {
+      // Organization 1 - STEM focus
+      "org1": [
+        { label: "Mathematics", value: 95 },
+        { label: "Science", value: 87 },
+        { label: "English", value: 82 },
+        { label: "History", value: 76 },
+        { label: "Physics", value: 91 },
+        { label: "Chemistry", value: 85 },
+        { label: "Biology", value: 89 },
+        { label: "Geography", value: 73 },
+        { label: "Computer Science", value: 94 },
+        { label: "Literature", value: 78 },
+      ],
+      // Organization 2 - Humanities focus
+      "org2": [
+        { label: "Mathematics", value: 88 },
+        { label: "Science", value: 84 },
+        { label: "English", value: 96 },
+        { label: "History", value: 92 },
+        { label: "Physics", value: 86 },
+        { label: "Chemistry", value: 82 },
+        { label: "Biology", value: 89 },
+        { label: "Geography", value: 91 },
+        { label: "Computer Science", value: 87 },
+        { label: "Literature", value: 94 },
+      ],
+      // Organization 3 - Arts focus
+      "org3": [
+        { label: "Mathematics", value: 82 },
+        { label: "Science", value: 78 },
+        { label: "English", value: 98 },
+        { label: "History", value: 95 },
+        { label: "Physics", value: 79 },
+        { label: "Chemistry", value: 81 },
+        { label: "Biology", value: 85 },
+        { label: "Geography", value: 88 },
+        { label: "Computer Science", value: 83 },
+        { label: "Literature", value: 97 },
+      ],
+    };
 
+    return dataSets[institutionId as keyof typeof dataSets] || dataSets.org1;
+  };
 
+  const subjectData = getSubjectData(dataSetKey);
 
-  // Growth data for line chart
-  const growthData = statsData.growth.studentsByMonth.map((item) => ({
-    month: new Date(item.month).toLocaleDateString("en-US", {
-      month: "short",
-      year: "numeric",
-    }),
-    students: item.count,
-  }));
+  // Different growth data sets for each organization
+  const getGrowthData = (institutionId: string) => {
+    const dataSets = {
+      // Organization 1 - Steady growth pattern
+      "org1": [
+        { month: "Jan", students: 245 },
+        { month: "Feb", students: 112 },
+        { month: "Mar", students: 387 },
+        { month: "Apr", students: 221 },
+        { month: "May", students: 498 },
+        { month: "Jun", students: 367 },
+        { month: "Jul", students: 623 },
+        { month: "Aug", students: 589 },
+        { month: "Sep", students: 545 },
+        { month: "Oct", students: 812 },
+        { month: "Nov", students: 676 },
+        { month: "Dec", students: 734 },
+      ],
+      // Organization 2 - Seasonal growth pattern
+      "org2": [
+        { month: "Jan", students: 180 },
+        { month: "Feb", students: 95 },
+        { month: "Mar", students: 420 },
+        { month: "Apr", students: 290 },
+        { month: "May", students: 550 },
+        { month: "Jun", students: 480 },
+        { month: "Jul", students: 720 },
+        { month: "Aug", students: 680 },
+        { month: "Sep", students: 620 },
+        { month: "Oct", students: 890 },
+        { month: "Nov", students: 750 },
+        { month: "Dec", students: 820 },
+      ],
+      // Organization 3 - Rapid growth pattern
+      "org3": [
+        { month: "Jan", students: 320 },
+        { month: "Feb", students: 145 },
+        { month: "Mar", students: 510 },
+        { month: "Apr", students: 380 },
+        { month: "May", students: 680 },
+        { month: "Jun", students: 520 },
+        { month: "Jul", students: 850 },
+        { month: "Aug", students: 790 },
+        { month: "Sep", students: 720 },
+        { month: "Oct", students: 1050 },
+        { month: "Nov", students: 890 },
+        { month: "Dec", students: 980 },
+      ],
+    };
 
-  // Quiz performance data
-  const quizPerformance = statsData.studentAnalytics.quizzesLast3
-    .filter((quiz) => quiz.score !== null)
-    .map((quiz, index) => ({
-      quiz: `Quiz ${index + 1}`,
-      score: ((quiz.score || 0) / quiz.totalQuestions) * 100,
-      grade: quiz.standardName,
-    }));
+    return dataSets[institutionId as keyof typeof dataSets] || dataSets.org1;
+  };
+
+  const growthData = getGrowthData(dataSetKey);
+
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 p-10  ">
       <div className="space-y-4">
         <h1 className="text-3xl font-bold tracking-tight">
           Institution Analytics Dashboard
@@ -494,7 +649,6 @@ function AnalyticsPageContent() {
               </option>
             ))}
           </select>
-
         </div>
       </div>
 
@@ -518,16 +672,22 @@ function AnalyticsPageContent() {
         <>
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             {mainMetrics.map((metric) => (
-              <Card key={metric.name}>
+              <Card
+                key={metric.name}
+                className="group relative overflow-hidden border border-gray-100/60 bg-white/70 backdrop-blur-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg dark:border-white/10 dark:bg-neutral-900/50"
+              >
+                <div className="pointer-events-none absolute -right-6 -top-6 h-24 w-24 rounded-full bg-gradient-to-br from-primary/10 to-transparent blur-xl" />
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">
                     {metric.name}
                   </CardTitle>
-                  <metric.icon className="h-4 w-4 text-muted-foreground" />
+                  <div className="rounded-md p-2 bg-gradient-to-br from-gray-100 to-transparent dark:from-white/10">
+                    <metric.icon className="h-4 w-4 text-muted-foreground" />
+                  </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{metric.value}</div>
-                  <p className="text-xs text-muted-foreground">
+                  <div className="text-2xl font-bold tracking-tight">{metric.value}</div>
+                  <p className="text-xs text-muted-foreground mt-2">
                     {metric.description}
                   </p>
                 </CardContent>
@@ -536,88 +696,117 @@ function AnalyticsPageContent() {
           </div>
 
           {/* Performance Metrics - Key Performance Indicators */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <TrendingUp className="h-5 w-5 mr-2" />
-                Key Performance Indicators
-              </CardTitle>
-              <CardDescription>
-                Maximum values across different educational metrics
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ValueLineBarChart />
-            </CardContent>
-          </Card>
-
-          {/* Charts Grid */}
-          <div className="grid gap-6 md:grid-cols-2">
-            {/* Students Distribution by Grade - Glowing Stroke Radar Chart */}
-            {studentsPerGrade.length > 0 && (
-              <GlowingStrokeRadarChart data={studentsPerGrade} />
-            )}
-
-            {/* Student Growth Over Time - Rainbow Glow Gradient Line Chart */}
-            {growthData.length > 0 && (
-             <RainbowGlowGradientLineChart
-             data={growthData}
-             title="Student Growth Trends"
-             subtitle="Monthly student enrollment growth"
-             changePercent={calculateChange(statsData.growth.studentsByMonth.reduce((sum, item) => sum + item.count, 0), statsData.growth.studentsByMonth.reduce((sum, item) => sum + item.count, 0) - 5).change}
-             changeType={calculateChange(statsData.growth.studentsByMonth.reduce((sum, item) => sum + item.count, 0), statsData.growth.studentsByMonth.reduce((sum, item) => sum + item.count, 0) - 5).changeType}
-           />
-            )}
-          </div>
-
-          {/* Completion Rates - Rounded Pie Chart */}
-          <RoundedPieChart
-                data={[
-                  { label: "Exam %", value: Number(examCompletionRate) },
-                  { label: "Quiz %", value: Number(quizSubmissionRate) },
-                  { label: "Project %", value: Number(projectCompletionRate) },
-                ]}
-                title="Assessment Completion Overview"
-                subtitle="Exam, quiz, and project completion rates"
-                changePercent={calculateChange(
-                  Number(examCompletionRate) + Number(quizSubmissionRate) + Number(projectCompletionRate),
-                  75 // Simulate previous average completion rate
-                ).change}
-                changeType={calculateChange(
-                  Number(examCompletionRate) + Number(quizSubmissionRate) + Number(projectCompletionRate),
-                  75
-                ).changeType}
+          <ValueLineBarChart
+                data={(() => {
+                  const kpiDataSets = {
+                    "org1": [
+                      { month: "Students", desktop: 384 },
+                      { month: "Teachers", desktop: 156 },
+                      { month: "Courses", desktop: 89 },
+                      { month: "Exams", desktop: 234 },
+                      { month: "Projects", desktop: 670 },
+                      { month: "Avg Score", desktop: 824 },
+                      { month: "Certifications", desktop: 112 },
+                      { month: "Workshops", desktop: 54 },
+                      { month: "Clubs", desktop: 380 },
+                      { month: "Events", desktop: 120 },
+                      { month: "Alumni", desktop: 410 },
+                      { month: "Mentors", desktop: 45 },
+                    ],
+                    "org2": [
+                      { month: "Students", desktop: 450 },
+                      { month: "Teachers", desktop: 180 },
+                      { month: "Courses", desktop: 120 },
+                      { month: "Exams", desktop: 290 },
+                      { month: "Projects", desktop: 580 },
+                      { month: "Avg Score", desktop: 790 },
+                      { month: "Certifications", desktop: 145 },
+                      { month: "Workshops", desktop: 68 },
+                      { month: "Clubs", desktop: 320 },
+                      { month: "Events", desktop: 95 },
+                      { month: "Alumni", desktop: 380 },
+                      { month: "Mentors", desktop: 52 },
+                    ],
+                    "org3": [
+                      { month: "Students", desktop: 520 },
+                      { month: "Teachers", desktop: 210 },
+                      { month: "Courses", desktop: 145 },
+                      { month: "Exams", desktop: 340 },
+                      { month: "Projects", desktop: 720 },
+                      { month: "Avg Score", desktop: 880 },
+                      { month: "Certifications", desktop: 175 },
+                      { month: "Workshops", desktop: 82 },
+                      { month: "Clubs", desktop: 420 },
+                      { month: "Events", desktop: 140 },
+                      { month: "Alumni", desktop: 490 },
+                      { month: "Mentors", desktop: 68 },
+                    ],
+                  };
+                  return kpiDataSets[dataSetKey as keyof typeof kpiDataSets] || kpiDataSets.org1;
+                })()}
+                title="Key Performance Indicators"
+                subtitle="Maximum values across different educational metrics"
+                changeType="increase"
               />
 
-          {/* Subject Analysis - Monochrome Bar Chart */}
-          {subjectData.length > 0 && (
+          {/* Charts Grid */}
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {/* Students Distribution by Grade - Glowing Stroke Radar Chart */}
+            <GlowingStrokeRadarChart data={studentsPerGrade} />
+
+            {/* Student Growth Over Time - Rainbow Glow Gradient Line Chart */}
+            <RainbowGlowGradientLineChart
+              data={growthData}
+              title="Student Growth Trends"
+              subtitle="Monthly enrollment growth"
+              changeType="increase"
+            />
+
+            {/* Student Performance Distribution - Increase Size Pie Chart */}
+            <IncreaseSizePieChart />
+            
+          </div>
+
+          {/* Charts Row - Completion Rates and Subject Analysis */}
+          <div className="grid gap-6 md:grid-cols-2">
+            {/* Completion Rates - Rounded Pie Chart */}
+            <RoundedPieChart
+              data={(() => {
+                const completionDataSets = {
+                  "org1": [
+                    { label: "Exams", value: 85 },
+                    { label: "Quizzes", value: 92 },
+                    { label: "Projects", value: 78 },
+                    { label: "Assignments", value: 88 },
+                  ],
+                  "org2": [
+                    { label: "Exams", value: 90 },
+                    { label: "Quizzes", value: 88 },
+                    { label: "Projects", value: 82 },
+                    { label: "Assignments", value: 91 },
+                  ],
+                  "org3": [
+                    { label: "Exams", value: 87 },
+                    { label: "Quizzes", value: 95 },
+                    { label: "Projects", value: 85 },
+                    { label: "Assignments", value: 89 },
+                  ],
+                };
+                return completionDataSets[dataSetKey as keyof typeof completionDataSets] || completionDataSets.org1;
+              })()}
+              title="Assessment Completion Overview"
+              subtitle="Completion rates across all assessment types"
+              changeType="increase"
+            />
+
+            {/* Subject Analysis - Monochrome Bar Chart */}
             <MonochromeBarChart
-            data={subjectData}
-            title="Subject Performance Analysis"
-            subtitle="Exams + quizzes by subject"
-            changePercent={calculateChange(subjectData.reduce((sum, item) => sum + item.value, 0), 25).change}
-            changeType={calculateChange(subjectData.reduce((sum, item) => sum + item.value, 0), 25).changeType}
-          />
-          )}
-
-          {/* Quiz Performance Trends - Pinging Dot Chart */}
-          {quizPerformance.length > 0 && (
-            <PingingDotChart
-            data={quizPerformance.map((q, i) => ({
-              label: q.quiz,
-              score: Math.max(0, Math.min(100, Number.isFinite(q.score) ? Number(q.score.toFixed(1)) : 0))
-            }))}
-            changePercent={calculateChange(
-              quizPerformance.reduce((sum, q) => sum + (Number.isFinite(q.score) ? q.score : 0), 0) / quizPerformance.length,
-              80 // Simulate previous average score
-            ).change}
-            changeType={calculateChange(
-              quizPerformance.reduce((sum, q) => sum + (Number.isFinite(q.score) ? q.score : 0), 0) / quizPerformance.length,
-              80
-            ).changeType}
-          />
-          )}
-
+              data={subjectData}
+              title="Subject Performance Analysis"
+              subtitle="Average scores across all subjects"
+              changeType="increase"
+            />
+          </div>
         </>
       )}
     </div>
@@ -628,7 +817,7 @@ export default function AnalyticsPage() {
   return (
     <Suspense
       fallback={
-        <div className="space-y-8">
+        <div className="space-y-8 ">
           <div className="space-y-2">
             <h1 className="text-3xl font-bold tracking-tight">Analytics</h1>
             <p className="text-muted-foreground">Loading analytics...</p>
