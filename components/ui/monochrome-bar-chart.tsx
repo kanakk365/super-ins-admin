@@ -85,7 +85,7 @@ export function MonochromeBarChart({
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center justify-center gap-2 text-center">
+        <CardTitle className="flex items-center gap-2">
           <span
             className={cn(jetBrainsMono.className, "text-2xl tracking-tighter")}
           >
@@ -102,18 +102,17 @@ export function MonochromeBarChart({
             </Badge>
           )}
         </CardTitle>
-        <CardDescription className="text-center">
+        <CardDescription>
           {subtitle ?? "Distribution by subject"}
         </CardDescription>
       </CardHeader>
-      <CardContent className="flex justify-center">
+      <CardContent>
         <AnimatePresence mode="wait">
-          <ChartContainer config={chartConfig} className="h-[300px] w-full max-w-4xl">
+          <ChartContainer config={chartConfig} className="h-[300px]">
             <BarChart
               accessibilityLayer
               data={chartData}
               onMouseLeave={() => setActiveIndex(undefined)}
-              margin={{ left: 20, right: 20, top: 20, bottom: 20 }}
             >
               <XAxis
                 dataKey="month"
