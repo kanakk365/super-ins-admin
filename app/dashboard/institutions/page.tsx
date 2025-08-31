@@ -116,7 +116,7 @@ export default function InstitutionsPage() {
 
   if (isLoading) {
     return (
-      <div className="space-y-8">
+      <div className="space-y-8 ">
         <div className="space-y-2">
           <h1 className="text-3xl font-bold tracking-tight">Institutions</h1>
           <p className="text-muted-foreground">Loading your institutions...</p>
@@ -142,7 +142,7 @@ export default function InstitutionsPage() {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 px-10 py-10">
       <div className="space-y-2">
         <h1 className="text-3xl font-bold tracking-tight">Institutions</h1>
         <p className="text-muted-foreground">
@@ -192,7 +192,7 @@ export default function InstitutionsPage() {
             >
               <CardHeader>
                 <CardTitle className="flex items-center justify-between">
-                  <span className="truncate">{institution.name}</span>
+                  <span className="truncate text-xl font-semibold">{institution.name}</span>
                   <span
                     className={`px-2 py-1 text-xs rounded-full ${
                       institution.approvalStatus === "APPROVED"

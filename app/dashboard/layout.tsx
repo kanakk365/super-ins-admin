@@ -9,8 +9,8 @@ export default function DashboardLayout({
     <div>
       <Sidebar />
       <div className="lg:pl-72">
-        <main className="py-10">
-          <div className="px-4 sm:px-6 lg:px-8">
+        <main className="">
+          <div className="">
             {children}
           </div>
         </main>

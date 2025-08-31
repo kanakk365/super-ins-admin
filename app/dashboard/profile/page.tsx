@@ -118,24 +118,82 @@ export default function ProfilePage() {
 
   if (isLoading) {
     return (
-      <div className="space-y-8">
-        <div className="space-y-2">
-          <h1 className="text-3xl font-bold tracking-tight">Profile</h1>
-          <p className="text-muted-foreground">Loading your profile...</p>
-        </div>
-        <div className="grid gap-6 lg:grid-cols-2">
-          {[1, 2].map((i) => (
-            <Card key={i} className="animate-pulse">
-              <CardHeader>
-                <div className="h-6 bg-gray-200 rounded w-32"></div>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="h-4 bg-gray-200 rounded w-full"></div>
-                <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-                <div className="h-4 bg-gray-200 rounded w-1/2"></div>
-              </CardContent>
-            </Card>
-          ))}
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-6">
+        <div className="max-w-4xl mx-auto space-y-8">
+          {/* Header Skeleton */}
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="space-y-2">
+                <div className="h-10 bg-slate-200 rounded-lg w-64 animate-pulse"></div>
+                <div className="h-4 bg-slate-200 rounded w-80 animate-pulse"></div>
+              </div>
+              <div className="hidden md:flex items-center space-x-2">
+                <div className="w-4 h-4 bg-slate-200 rounded animate-pulse"></div>
+                <div className="h-4 bg-slate-200 rounded w-24 animate-pulse"></div>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid gap-8 lg:grid-cols-3">
+            {/* Avatar Skeleton */}
+            <div className="lg:col-span-1">
+              <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-sm">
+                <CardContent className="pt-6">
+                  <div className="flex flex-col items-center text-center space-y-4">
+                    <div className="w-24 h-24 rounded-full bg-slate-200 animate-pulse"></div>
+                    <div className="space-y-2">
+                      <div className="h-6 bg-slate-200 rounded w-48 animate-pulse"></div>
+                      <div className="h-4 bg-slate-200 rounded w-40 animate-pulse"></div>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <div className="w-2 h-2 rounded-full bg-slate-200 animate-pulse"></div>
+                      <div className="h-4 bg-slate-200 rounded w-12 animate-pulse"></div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Profile Form Skeleton */}
+            <div className="lg:col-span-2">
+              <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-sm">
+                <CardHeader className="pb-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-8 h-8 rounded-lg bg-slate-200 animate-pulse"></div>
+                      <div className="space-y-2">
+                        <div className="h-6 bg-slate-200 rounded w-48 animate-pulse"></div>
+                        <div className="h-4 bg-slate-200 rounded w-40 animate-pulse"></div>
+                      </div>
+                    </div>
+                    <div className="h-8 bg-slate-200 rounded w-24 animate-pulse"></div>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="grid gap-6 md:grid-cols-2">
+                    {[1, 2].map((i) => (
+                      <div key={i} className="space-y-3">
+                        <div className="h-4 bg-slate-200 rounded w-20 animate-pulse"></div>
+                        <div className="h-10 bg-slate-200 rounded animate-pulse"></div>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="space-y-3">
+                    <div className="h-4 bg-slate-200 rounded w-24 animate-pulse"></div>
+                    <div className="h-10 bg-slate-200 rounded animate-pulse"></div>
+                  </div>
+                  <div className="grid gap-6 md:grid-cols-2">
+                    {[1, 2].map((i) => (
+                      <div key={i} className="space-y-3">
+                        <div className="h-4 bg-slate-200 rounded w-16 animate-pulse"></div>
+                        <div className="h-12 bg-slate-200 rounded-lg animate-pulse"></div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -143,164 +201,208 @@ export default function ProfilePage() {
 
   if (!profile) {
     return (
-      <div className="space-y-8">
-        <div className="space-y-2">
-          <h1 className="text-3xl font-bold tracking-tight">Profile</h1>
-          <p className="text-muted-foreground text-red-600">
-            Failed to load profile data. Please try again.
-          </p>
+      <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-100 p-6">
+        <div className="max-w-4xl mx-auto space-y-8">
+          <div className="space-y-4">
+            <div className="text-center space-y-4">
+              <div className="w-16 h-16 rounded-full bg-red-100 flex items-center justify-center mx-auto">
+                <User className="h-8 w-8 text-red-600" />
+              </div>
+              <div>
+                <h1 className="text-4xl font-bold tracking-tight bg-gradient-to-r from-slate-900 to-slate-600 bg-clip-text text-transparent">
+                  Profile Error
+                </h1>
+                <p className="text-slate-600 mt-2">
+                  Failed to load profile data. Please try again.
+                </p>
+              </div>
+              <Button
+                onClick={() => window.location.reload()}
+                className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700"
+              >
+                Reload Page
+              </Button>
+            </div>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-8">
-      <div className="space-y-2">
-        <h1 className="text-3xl font-bold tracking-tight">Profile</h1>
-        <p className="text-muted-foreground">
-          Manage your account settings and preferences
-        </p>
-      </div>
-
-      <div className="max-w-2xl">
-        {/* Profile Information */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center justify-between">
-              <span className="flex items-center">
-                <User className="h-5 w-5 mr-2" />
-                Profile Information
-              </span>
-              {!isEditing ? (
-                <Button variant="outline" size="sm" onClick={handleEditProfile}>
-                  <Edit className="h-4 w-4 mr-2" />
-                  Edit
-                </Button>
-              ) : (
-                <div className="flex space-x-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleCancelEdit}
-                  >
-                    <X className="h-4 w-4 mr-2" />
-                    Cancel
-                  </Button>
-                  <Button size="sm" onClick={handleSaveProfile}>
-                    <Save className="h-4 w-4 mr-2" />
-                    Save
-                  </Button>
-                </div>
-              )}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="firstName">First Name</Label>
-                {isEditing ? (
-                  <Input
-                    id="firstName"
-                    value={editedProfile.firstName || ""}
-                    onChange={(e) =>
-                      handleInputChange("firstName", e.target.value)
-                    }
-                    placeholder="Enter your first name"
-                  />
-                ) : (
-                  <div className="flex items-center space-x-2">
-                    <User className="h-4 w-4 text-muted-foreground" />
-                    <span>{profile.firstName}</span>
-                  </div>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="lastName">Last Name</Label>
-                {isEditing ? (
-                  <Input
-                    id="lastName"
-                    value={editedProfile.lastName || ""}
-                    onChange={(e) =>
-                      handleInputChange("lastName", e.target.value)
-                    }
-                    placeholder="Enter your last name"
-                  />
-                ) : (
-                  <div className="flex items-center space-x-2">
-                    <User className="h-4 w-4 text-muted-foreground" />
-                    <span>{profile.lastName}</span>
-                  </div>
-                )}
-              </div>
+    <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-100  flex justify-center items-center py-20">
+      <div className=" max-w-7xl mx-auto space-y-8">
+        {/* Header Section */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-center text-center">
+            <div>
+              <h1 className="text-4xl font-bold tracking-tight bg-gradient-to-r from-green-900 to-emerald-600 bg-clip-text text-transparent">
+                Profile Settings
+              </h1>
+              <p className="text-slate-600 mt-2">
+                Manage your account information and preferences
+              </p>
             </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="email">Email Address</Label>
-              {isEditing ? (
-                <Input
-                  id="email"
-                  type="email"
-                  value={editedProfile.email || ""}
-                  onChange={(e) => handleInputChange("email", e.target.value)}
-                  placeholder="Enter your email"
-                />
-              ) : (
-                <div className="flex items-center space-x-2">
-                  <Mail className="h-4 w-4 text-muted-foreground" />
-                  <span>{profile.email}</span>
-                </div>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <Label>Role</Label>
-              <div className="flex items-center space-x-2">
-                <Shield className="h-4 w-4 text-muted-foreground" />
-                <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-sm">
-                  {profile.role.replace("_", " ")}
-                </span>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Member Since</Label>
-              <div className="flex items-center space-x-2">
-                <Calendar className="h-4 w-4 text-muted-foreground" />
-                <span>{new Date(profile.createdAt).toLocaleDateString()}</span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Account Statistics */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Account Statistics</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-4 md:grid-cols-3">
-            <div className="text-center p-4 bg-muted rounded-lg">
-              <div className="text-2xl font-bold text-primary">47</div>
-              <div className="text-sm text-muted-foreground">
-                Institutions Managed
-              </div>
-            </div>
-            <div className="text-center p-4 bg-muted rounded-lg">
-              <div className="text-2xl font-bold text-green-600">15,420</div>
-              <div className="text-sm text-muted-foreground">
-                Total Students
-              </div>
-            </div>
-            <div className="text-center p-4 bg-muted rounded-lg">
-              <div className="text-2xl font-bold text-blue-600">892</div>
-              <div className="text-sm text-muted-foreground">Total Courses</div>
-            </div>
+            
           </div>
-        </CardContent>
-      </Card>
+        </div>
+
+        <div className="flex justify-center">
+          {/* Profile Information */}
+          <div className="w-full max-w-2xl">
+            <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-sm">
+              <CardHeader className="pb-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-8 h-8 rounded-lg bg-gradient-to-r from-green-500 to-emerald-600 flex items-center justify-center">
+                      <User className="h-4 w-4 text-white" />
+                    </div>
+                    <div>
+                      <CardTitle className="text-xl text-slate-900">Profile Information</CardTitle>
+                      <p className="text-sm text-slate-500 mt-1">Update your personal details</p>
+                    </div>
+                  </div>
+                  {!isEditing ? (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleEditProfile}
+                      className="border-green-200 hover:bg-green-50 hover:border-green-300 text-green-700"
+                    >
+                      <Edit className="h-4 w-4 mr-2" />
+                      Edit Profile
+                    </Button>
+                  ) : (
+                    <div className="flex space-x-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleCancelEdit}
+                        className="border-green-200 hover:bg-green-50 text-green-700"
+                      >
+                        <X className="h-4 w-4 mr-2" />
+                        Cancel
+                      </Button>
+                      <Button
+                        size="sm"
+                        onClick={handleSaveProfile}
+                        className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700"
+                      >
+                        <Save className="h-4 w-4 mr-2" />
+                        Save Changes
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="grid gap-6 md:grid-cols-2">
+                  <div className="space-y-3">
+                    <Label htmlFor="firstName" className="text-sm font-medium text-slate-700">
+                      First Name
+                    </Label>
+                    {isEditing ? (
+                      <Input
+                        id="firstName"
+                        value={editedProfile.firstName || ""}
+                        onChange={(e) =>
+                          handleInputChange("firstName", e.target.value)
+                        }
+                        placeholder="Enter your first name"
+                        className="border-green-200 focus:border-green-500 focus:ring-green-500/20"
+                      />
+                    ) : (
+                      <div className="flex items-center space-x-3 p-3 bg-slate-50 rounded-lg">
+                        <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center">
+                          <User className="h-4 w-4 text-green-600" />
+                        </div>
+                        <span className="text-slate-900 font-medium">{profile.firstName}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="space-y-3">
+                    <Label htmlFor="lastName" className="text-sm font-medium text-slate-700">
+                      Last Name
+                    </Label>
+                    {isEditing ? (
+                      <Input
+                        id="lastName"
+                        value={editedProfile.lastName || ""}
+                        onChange={(e) =>
+                          handleInputChange("lastName", e.target.value)
+                        }
+                        placeholder="Enter your last name"
+                        className="border-green-200 focus:border-green-500 focus:ring-green-500/20"
+                      />
+                    ) : (
+                      <div className="flex items-center space-x-3 p-3 bg-slate-50 rounded-lg">
+                        <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center">
+                          <User className="h-4 w-4 text-green-600" />
+                        </div>
+                        <span className="text-slate-900 font-medium">{profile.lastName}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <Label htmlFor="email" className="text-sm font-medium text-slate-700">
+                    Email Address
+                  </Label>
+                  {isEditing ? (
+                    <Input
+                      id="email"
+                      type="email"
+                      value={editedProfile.email || ""}
+                      onChange={(e) => handleInputChange("email", e.target.value)}
+                      placeholder="Enter your email"
+                      className="border-green-200 focus:border-green-500 focus:ring-green-500/20"
+                    />
+                  ) : (
+                    <div className="flex items-center space-x-3 p-3 bg-slate-50 rounded-lg">
+                      <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center">
+                        <Mail className="h-4 w-4 text-emerald-600" />
+                      </div>
+                      <span className="text-slate-900 font-medium">{profile.email}</span>
+                    </div>
+                  )}
+                </div>
+
+                <div className="grid gap-6 md:grid-cols-2">
+                  <div className="space-y-3">
+                    <Label className="text-sm font-medium text-slate-700">Role</Label>
+                    <div className="flex items-center space-x-3 p-3 bg-slate-50 rounded-lg">
+                      <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center">
+                        <Shield className="h-4 w-4 text-green-600" />
+                      </div>
+                      <span className="px-3 py-1 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-full text-sm font-medium">
+                        {profile.role.replace("_", " ")}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    <Label className="text-sm font-medium text-slate-700">Member Since</Label>
+                    <div className="flex items-center space-x-3 p-3 bg-slate-50 rounded-lg">
+                      <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center">
+                        <Calendar className="h-4 w-4 text-emerald-600" />
+                      </div>
+                      <span className="text-slate-900 font-medium">
+                        {new Date(profile.createdAt).toLocaleDateString('en-US', {
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric'
+                        })}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
