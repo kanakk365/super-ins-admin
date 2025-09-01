@@ -174,7 +174,11 @@ export default function Sidebar() {
       <div className="hidden lg:fixed lg:inset-y-0 lg:z-50 lg:flex lg:w-72 lg:flex-col">
         <div className="flex grow flex-col gap-y-5 overflow-y-auto border-r bg-card px-6 pb-4">
           <div className="flex h-16 shrink-0 items-center">
-            <Building2 className="h-8 w-8 text-gradient-primary mr-3" />
+            <img
+              src="/logo.png"
+              alt="Super Institution Admin Logo"
+              className="h-10 w-auto mr-3"
+            />
             <h1 className="text-lg font-semibold text-foreground">
               Super Institution Admin
             </h1>
@@ -196,7 +200,11 @@ export default function Sidebar() {
             <SheetContent side="left" className="w-72 p-0">
               <div className="flex grow flex-col gap-y-5 overflow-y-auto bg-card px-6 pb-4">
                 <div className="flex h-16 shrink-0 items-center">
-                  <Building2 className="h-8 w-8 text-gradient-primary mr-3" />
+                  <img
+                    src="/logo.png"
+                    alt="Super Institution Admin Logo"
+                    className="h-10 w-auto mr-3"
+                  />
                   <h1 className="text-xl font-bold text-foreground">
                     Super Institution Admin
                   </h1>
@@ -205,8 +213,15 @@ export default function Sidebar() {
               </div>
             </SheetContent>
           </Sheet>
-          <div className="flex-1 text-sm font-semibold leading-6 text-foreground">
-            Super Institution Admin
+          <div className="flex items-center gap-2">
+            <img
+              src="/logo.png"
+              alt="Super Institution Admin Logo"
+              className="h-8 w-auto"
+            />
+            <span className="text-sm font-semibold leading-6 text-foreground">
+              Super Institution Admin
+            </span>
           </div>
         </div>
       </div>
