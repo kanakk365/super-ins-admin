@@ -45,7 +45,7 @@ const chartData = [
 
 const chartConfig = {
   desktop: {
-    label: "Desktop",
+    label: "Count",
     color: "hsl(var(--chart-1))",
   },
 } satisfies ChartConfig;
@@ -65,20 +65,26 @@ export function ValueLineBarChart({
   changePercent,
   changeType = "increase"
 }: ValueLineBarChartProps = {}) {
-  const chartData = data || [
-    { month: "January", desktop: 342 },
-    { month: "February", desktop: 676 },
-    { month: "March", desktop: 512 },
-    { month: "April", desktop: 629 },
-    { month: "May", desktop: 458 },
-    { month: "June", desktop: 781 },
-    { month: "July", desktop: 394 },
-    { month: "August", desktop: 924 },
-    { month: "September", desktop: 647 },
-    { month: "October", desktop: 532 },
-    { month: "November", desktop: 803 },
-    { month: "December", desktop: 271 },
-  ];
+  // Filter out "Other" values and process the data
+  const chartData = React.useMemo(() => {
+    const rawData = data || [
+      { month: "January", desktop: 342 },
+      { month: "February", desktop: 676 },
+      { month: "March", desktop: 512 },
+      { month: "April", desktop: 629 },
+      { month: "May", desktop: 458 },
+      { month: "June", desktop: 781 },
+      { month: "July", desktop: 394 },
+      { month: "August", desktop: 924 },
+      { month: "September", desktop: 647 },
+      { month: "October", desktop: 532 },
+      { month: "November", desktop: 803 },
+      { month: "December", desktop: 271 },
+    ];
+
+    // Filter out "Other" values
+    return rawData.filter(item => item.month !== "Other");
+  }, [data]);
 
   const [activeIndex, setActiveIndex] = React.useState<number | undefined>(
     undefined
@@ -159,7 +165,9 @@ export function ValueLineBarChart({
                 tickLine={false}
                 tickMargin={10}
                 axisLine={false}
-                tickFormatter={(value) => value.slice(0, 3)}
+                angle={-45}
+                textAnchor="end"
+                height={60}
               />
               <YAxis
                 hide={false}

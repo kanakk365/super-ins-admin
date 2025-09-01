@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect, Suspense, useMemo } from "react";
 import { useSearchParams } from "next/navigation";
 import {
   BarChart3,
@@ -27,14 +27,12 @@ import { Button } from "@/components/ui/button";
 import { apiClient, Institution } from "@/lib/api";
 import { useToast } from "@/components/ui/toaster";
 import { useRouter } from "next/navigation";
-import { GlowingStrokeRadarChart } from "@/components/ui/glowing-stroke-radar-chart";
-import { MonochromeBarChart } from "@/components/ui/monochrome-bar-chart";
-import { PingingDotChart } from "@/components/ui/pinging-dot-chart";
-import { RainbowGlowGradientLineChart } from "@/components/ui/rainbow-glow-gradient-line";
-import { RoundedPieChart } from "@/components/ui/rounded-pie-chart";
-import { ClippedAreaChart } from "@/components/ui/clipped-area-chart";
 import { ValueLineBarChart } from "@/components/ui/value-line-bar-chart";
-import { IncreaseSizePieChart } from "@/components/ui/increase-size-pie-chart";
+import { RoundedPieChart } from "@/components/ui/rounded-pie-chart";
+import { ScoreRadar } from "@/components/ui/score-radar";
+// removed unused IncreaseSizePieChart
+
+// removed CustomIncreaseSizePieChart placeholder component
 
 interface StatsData {
   totals: {
@@ -181,24 +179,201 @@ interface StatsData {
 }
 
 function AnalyticsPageContent() {
+  const USE_DUMMY = true;
   const [statsData, setStatsData] = useState<StatsData | null>(null);
   const [institutions, setInstitutions] = useState<Institution[]>([]);
   const [selectedInstitutionId, setSelectedInstitutionId] =
     useState<string>("");
   const [selectedInstitutionName, setSelectedInstitutionName] =
     useState<string>("");
+  const [selectedGradeId, setSelectedGradeId] = useState<string>("");
+  const [selectedSectionId, setSelectedSectionId] = useState<string>("");
+  const [selectedSubject, setSelectedSubject] = useState<string>("");
+  const [examMode, setExamMode] = useState<"regular" | "customized">("regular");
+  const [quizMode, setQuizMode] = useState<"regular" | "customized">("regular");
+
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingStats, setIsLoadingStats] = useState(false);
   const { toast } = useToast();
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  // Load institutions on component mount
+  // Build a complete dummy StatsData for an institution
+  const buildDummyStats = (instId: string): StatsData => {
+    const ugId = `${instId}-grade-ug`;
+    const pgId = `${instId}-grade-pg`;
+    const sections = [
+      { id: `${ugId}-A`, name: "A", standardId: ugId },
+      { id: `${ugId}-B`, name: "B", standardId: ugId },
+      { id: `${pgId}-A`, name: "A", standardId: pgId },
+    ];
+
+    const examsTotals: Record<string, number> = {
+      Math: 120,
+      Science: 95,
+      "Social studies": 80,
+      English: 110,
+      UG: 75,
+      PG: 60,
+    };
+    const quizzesTotals: Record<string, number> = {
+      Math: 180,
+      Science: 160,
+      "Social studies": 140,
+      English: 170,
+      UG: 70,
+      PG: 55,
+    };
+    const projectsUG = 40;
+    const projectsPG = 28;
+
+    const toSchoolSubjectArray = (obj: Record<string, number>) =>
+      Object.entries(obj)
+        .filter(([k]) => !["UG", "PG"].includes(k))
+        .map(([subject, count]) => ({ subject, count }));
+
+    const students = Array.from({ length: 60 }).map(
+      (_, i) => `stu-${instId}-${i + 1}`
+    );
+    const pick = (arr: string[], n: number) =>
+      arr.slice(0, Math.max(1, Math.min(n, arr.length)));
+
+    return {
+      totals: {
+        students: 2000,
+        quizzes: Object.values(quizzesTotals).reduce((a, b) => a + b, 0),
+        quizSubmissions: 1200,
+        exams: Object.values(examsTotals).reduce((a, b) => a + b, 0),
+        completedExams: 900,
+        projects: projectsUG + projectsPG,
+        completedProjects: 50,
+      },
+      breakdown: {
+        byClass: [
+          { _count: { _all: 30 }, standardId: ugId, standardName: "UG" },
+          { _count: { _all: 20 }, standardId: pgId, standardName: "PG" },
+        ],
+        bySection: sections.map((s) => ({
+          _count: { _all: 10 },
+          sectionId: s.id,
+          sectionName: s.name,
+        })),
+        gradesWithStrength: [
+          { standardId: ugId, grade: "UG", strength: 600 },
+          { standardId: pgId, grade: "PG", strength: 400 },
+        ],
+        sectionsWithStrength: sections.map((s) => ({
+          sectionId: s.id,
+          section: s.name,
+          standardId: s.standardId,
+          strength: 200,
+        })),
+      },
+      assigned: {
+        exams: {
+          bySchoolSubject: toSchoolSubjectArray(examsTotals),
+          byClassSubject: [
+            {
+              standardId: ugId,
+              subject: "UG",
+              count: examsTotals["UG"],
+              standardName: "UG",
+            },
+            {
+              standardId: pgId,
+              subject: "PG",
+              count: examsTotals["PG"],
+              standardName: "PG",
+            },
+          ],
+          bySectionSubject: sections.map((s) => ({
+            sectionId: s.id,
+            subject: "Math",
+            count: 10,
+            sectionName: s.name,
+          })),
+        },
+        quizzes: {
+          bySchoolSubject: toSchoolSubjectArray(quizzesTotals),
+          byClassSubject: [
+            {
+              standardId: ugId,
+              subject: "UG",
+              count: quizzesTotals["UG"],
+              standardName: "UG",
+            },
+            {
+              standardId: pgId,
+              subject: "PG",
+              count: quizzesTotals["PG"],
+              standardName: "PG",
+            },
+          ],
+          bySectionSubject: sections.map((s) => ({
+            sectionId: s.id,
+            subject: "Science",
+            count: 8,
+            sectionName: s.name,
+          })),
+        },
+        projects: {
+          byClass: [
+            { standardId: ugId, count: projectsUG, standardName: "UG" },
+            { standardId: pgId, count: projectsPG, standardName: "PG" },
+          ],
+          bySection: sections.map((s) => ({
+            sectionId: s.id,
+            count: 4,
+            sectionName: s.name,
+          })),
+        },
+      },
+      studentAnalytics: {
+        examsLast3: pick(students, 40).map((sid, i) => ({
+          studentId: sid,
+          standardId: i % 2 === 0 ? ugId : pgId,
+          sectionId: sections[i % sections.length].id,
+          score: 40 + ((i * 7) % 60),
+          examId: `exam-${i}`,
+          rn: `${i}`,
+          standardName: i % 2 === 0 ? "UG" : "PG",
+          sectionName: sections[i % sections.length].name,
+        })),
+        quizzesLast3: pick(students, 35).map((sid, i) => ({
+          studentId: sid,
+          standardId: i % 2 === 0 ? ugId : pgId,
+          sectionId: sections[i % sections.length].id,
+          score: 5 + (i % 20),
+          totalQuestions: 20,
+          rn: `${i}`,
+          standardName: i % 2 === 0 ? "UG" : "PG",
+          sectionName: sections[i % sections.length].name,
+        })),
+        projectsLast3: pick(students, 25).map((sid, i) => ({
+          studentId: sid,
+          standardId: i % 2 === 0 ? ugId : pgId,
+          sectionId: sections[i % sections.length].id,
+          isCompleted: i % 3 !== 0,
+          rn: `${i}`,
+          standardName: i % 2 === 0 ? "UG" : "PG",
+          sectionName: sections[i % sections.length].name,
+        })),
+      },
+      classSectionAnalytics: {
+        exams: { recentByClass: [], recentBySection: [] },
+        quizzes: { recentByClass: [], recentBySection: [] },
+      },
+      growth: { studentsByMonth: [] },
+    };
+  };
+
   useEffect(() => {
     const checkAuth = () => {
       if (!apiClient.isAuthenticated()) {
-        router.push("/");
-        return false;
+        if (!USE_DUMMY) {
+          router.push("/");
+          return false;
+        }
       }
       return true;
     };
@@ -208,25 +383,80 @@ function AnalyticsPageContent() {
         if (!checkAuth()) return;
 
         setIsLoading(true);
-        const institutionsResponse = await apiClient.getMyInstitutions(1, 100);
-        setInstitutions(institutionsResponse.data.data);
+        if (USE_DUMMY) {
+          const dummyInstitutions: Institution[] = [
+            {
+              id: "inst-001",
+              name: "Alpha Institute",
+              type: "University",
+              affiliatedBoard: "UGC",
+              email: "alpha@example.com",
+              phone: "0000000000",
+              website: "alpha.example.com",
+              yearOfEstablishment: "1990",
+              totalStudentStrength: 1200,
+              proofOfInstitutionUrl: "",
+              logoUrl: null,
+              primaryColor: "#000000",
+              secondaryColor: "#ffffff",
+              address: "",
+              approvalStatus: "APPROVED",
+              createdAt: "",
+              updatedAt: "",
+              addedById: "",
+              password: null,
+            },
+            {
+              id: "inst-002",
+              name: "Beta College",
+              type: "College",
+              affiliatedBoard: "AICTE",
+              email: "beta@example.com",
+              phone: "0000000001",
+              website: "beta.example.com",
+              yearOfEstablishment: "2001",
+              totalStudentStrength: 800,
+              proofOfInstitutionUrl: "",
+              logoUrl: null,
+              primaryColor: "#000000",
+              secondaryColor: "#ffffff",
+              address: "",
+              approvalStatus: "APPROVED",
+              createdAt: "",
+              updatedAt: "",
+              addedById: "",
+              password: null,
+            },
+          ];
+          setInstitutions(dummyInstitutions);
+          const first = dummyInstitutions[0];
+          setSelectedInstitutionId(first.id);
+          setSelectedInstitutionName(first.name);
+          setStatsData(buildDummyStats(first.id));
+        } else {
+          const institutionsResponse = await apiClient.getMyInstitutions(
+            1,
+            100
+          );
+          setInstitutions(institutionsResponse.data.data);
 
-        // Hardcode specific institution ID
-        const hardcodedInstitutionId = "cmcx8sm3y0000qe0r6xjq6imo";
-        const targetInstitution = institutionsResponse.data.data.find(
-          (inst) => inst.id === hardcodedInstitutionId
-        );
+          // Hardcode specific institution ID
+          const hardcodedInstitutionId = "cmcx8sm3y0000qe0r6xjq6imo";
+          const targetInstitution = institutionsResponse.data.data.find(
+            (inst) => inst.id === hardcodedInstitutionId
+          );
 
-        if (targetInstitution) {
-          setSelectedInstitutionId(targetInstitution.id);
-          setSelectedInstitutionName(targetInstitution.name);
-          await loadStatsForInstitution(targetInstitution.id);
-        } else if (institutionsResponse.data.data.length > 0) {
-          // Fallback to first institution if hardcoded one not found
-          const firstInstitution = institutionsResponse.data.data[0];
-          setSelectedInstitutionId(firstInstitution.id);
-          setSelectedInstitutionName(firstInstitution.name);
-          await loadStatsForInstitution(firstInstitution.id);
+          if (targetInstitution) {
+            setSelectedInstitutionId(targetInstitution.id);
+            setSelectedInstitutionName(targetInstitution.name);
+            await loadStatsForInstitution(targetInstitution.id);
+          } else if (institutionsResponse.data.data.length > 0) {
+            // Fallback to first institution if hardcoded one not found
+            const firstInstitution = institutionsResponse.data.data[0];
+            setSelectedInstitutionId(firstInstitution.id);
+            setSelectedInstitutionName(firstInstitution.name);
+            await loadStatsForInstitution(firstInstitution.id);
+          }
         }
       } catch (error) {
         toast({
@@ -245,9 +475,7 @@ function AnalyticsPageContent() {
   const loadStatsForInstitution = async (institutionId: string) => {
     try {
       setIsLoadingStats(true);
-      const statsResponse = await apiClient.getInstitutionStats(
-        "cmcx8sm3y0000qe0r6xjq6imo"
-      );
+      const statsResponse = await apiClient.getInstitutionStats(institutionId);
       setStatsData(statsResponse.data);
     } catch (error) {
       toast({
@@ -267,7 +495,13 @@ function AnalyticsPageContent() {
     if (institution) {
       setSelectedInstitutionId(institutionId);
       setSelectedInstitutionName(institution.name);
-      await loadStatsForInstitution(institutionId);
+      setSelectedGradeId("");
+      setSelectedSectionId("");
+      if (USE_DUMMY) {
+        setStatsData(buildDummyStats(institutionId));
+      } else {
+        await loadStatsForInstitution(institutionId);
+      }
 
       // Update URL without causing page refresh
       const url = new URL(window.location.href);
@@ -275,6 +509,697 @@ function AnalyticsPageContent() {
       window.history.replaceState({}, "", url.toString());
     }
   };
+
+  // ----- Data shaping helpers -----
+  type Category =
+    | "Math"
+    | "Science"
+    | "Social studies"
+    | "English"
+    | "UG"
+    | "PG"
+    | "Other";
+
+  const subjectToCategory = (subjectRaw: string): Category => {
+    const s = (subjectRaw || "").toLowerCase();
+    if (s.includes("ug")) return "UG";
+    if (s.includes("pg")) return "PG";
+    if (
+      s.includes("math") ||
+      s.includes("algebra") ||
+      s.includes("calculus") ||
+      s.includes("fraction") ||
+      s.includes("linear equation") ||
+      s === "f" // fallback seen in payload
+    ) {
+      return "Math";
+    }
+    if (
+      s.includes("physics") ||
+      s.includes("chemistry") ||
+      s.includes("biology") ||
+      s.includes("photosynthesis") ||
+      s.includes("force") ||
+      s.includes("motion") ||
+      s.includes("science") ||
+      s.includes("wave")
+    ) {
+      return "Science";
+    }
+    if (s.includes("english") || s.includes("literature")) return "English";
+    if (
+      s.includes("history") ||
+      s.includes("geography") ||
+      s.includes("social")
+    )
+      return "Social studies";
+    return "Other";
+  };
+
+  const emptyCategoryCounts: Record<Category, number> = {
+    Math: 0,
+    Science: 0,
+    "Social studies": 0,
+    English: 0,
+    UG: 0,
+    PG: 0,
+    Other: 0,
+  };
+
+  // Convert category totals to pie chart data format
+  const toPieData = (totals: Record<Category, number>) =>
+    Object.entries(totals)
+      .filter(([label]) => label !== "Other")
+      .map(([label, value]) => ({ label, value }));
+
+  // Convert full names to shorter versions for bar chart display
+  const toBarChartData = (totals: Record<Category, number>) =>
+    Object.entries(totals)
+      .filter(([label]) => label !== "Other")
+      .map(([label, value]) => ({
+        label: label === "Social studies" ? "SST" : label,
+        value,
+      }));
+
+  const aggregateExamsByCategory = (data: StatsData | null) => {
+    const totals: Record<Category, number> = { ...emptyCategoryCounts };
+    if (!data) return totals;
+    // School-wide subjects
+    data.assigned.exams.bySchoolSubject.forEach((entry) => {
+      const cat = subjectToCategory(entry.subject);
+      totals[cat] += entry.count;
+    });
+    // UG/PG via class subjects
+    data.assigned.exams.byClassSubject.forEach((entry) => {
+      const std = (entry.standardName || "").toLowerCase();
+      if (std === "ug") totals["UG"] += entry.count;
+      if (std === "pg") totals["PG"] += entry.count;
+    });
+    return totals;
+  };
+
+  const aggregateQuizzesByCategory = (data: StatsData | null) => {
+    const totals: Record<Category, number> = { ...emptyCategoryCounts };
+    if (!data) return totals;
+    data.assigned.quizzes.bySchoolSubject.forEach((entry) => {
+      const cat = subjectToCategory(entry.subject);
+      totals[cat] += entry.count;
+    });
+    data.assigned.quizzes.byClassSubject.forEach((entry) => {
+      const std = (entry.standardName || "").toLowerCase();
+      if (std === "ug") totals["UG"] += entry.count;
+      if (std === "pg") totals["PG"] += entry.count;
+    });
+    return totals;
+  };
+
+  const aggregateProjectsByCategory = (data: StatsData | null) => {
+    const totals: Record<Category, number> = { ...emptyCategoryCounts };
+    if (!data) return totals;
+    data.assigned.projects.byClass.forEach((entry) => {
+      const std = (entry.standardName || "").toLowerCase();
+      if (std === "ug") totals["UG"] += entry.count;
+      if (std === "pg") totals["PG"] += entry.count;
+    });
+    return totals;
+  };
+
+  const examsTotalsByCategory = useMemo(
+    () => aggregateExamsByCategory(statsData),
+    [statsData]
+  );
+  const quizzesTotalsByCategory = useMemo(
+    () => aggregateQuizzesByCategory(statsData),
+    [statsData]
+  );
+  const projectsTotalsByCategory = useMemo(
+    () => aggregateProjectsByCategory(statsData),
+    [statsData]
+  );
+
+  const quizzesTotalsPieData = useMemo(
+    () => toPieData(quizzesTotalsByCategory),
+    [quizzesTotalsByCategory]
+  );
+  const projectsTotalsPieData = useMemo(
+    () => toPieData(projectsTotalsByCategory),
+    [projectsTotalsByCategory]
+  );
+
+  // ----- Dummy Customized Stats -----
+  const customizedTotalsByCategory = useMemo(() => {
+    // Derive from totals to keep consistent proportions
+    const derived: Record<Category, number> = { ...emptyCategoryCounts };
+    Object.entries(examsTotalsByCategory).forEach(([k, v]) => {
+      derived[k as Category] = Math.floor(v * 0.4);
+    });
+    return derived;
+  }, [examsTotalsByCategory]);
+
+  const customizedQuizzesTotalsByCategory = useMemo(() => {
+    const derived: Record<Category, number> = { ...emptyCategoryCounts };
+    Object.entries(quizzesTotalsByCategory).forEach(([k, v]) => {
+      derived[k as Category] = Math.floor(v * 0.35);
+    });
+    return derived;
+  }, [quizzesTotalsByCategory]);
+
+  const todayDummyCounts = useMemo(() => {
+    const base: Record<Category, number> = { ...emptyCategoryCounts };
+    // keep small illustrative numbers
+    return {
+      exams: {
+        ...base,
+        Math: 5,
+        Science: 4,
+        "Social studies": 3,
+        English: 6,
+        UG: 2,
+        PG: 1,
+      },
+      quizzes: {
+        ...base,
+        Math: 8,
+        Science: 7,
+        "Social studies": 5,
+        English: 9,
+        UG: 3,
+        PG: 2,
+      },
+      projects: {
+        ...base,
+        Math: 1,
+        Science: 1,
+        "Social studies": 1,
+        English: 1,
+        UG: 2,
+        PG: 1,
+      },
+      customizedExams: {
+        ...base,
+        Math: 3,
+        Science: 2,
+        "Social studies": 2,
+        English: 4,
+        UG: 1,
+        PG: 1,
+      },
+      customizedQuizzes: {
+        ...base,
+        Math: 4,
+        Science: 3,
+        "Social studies": 3,
+        English: 5,
+        UG: 2,
+        PG: 1,
+      },
+    } as const;
+  }, []);
+
+  // Total data (always using totals)
+  const totalExamsData = useMemo(
+    () => toBarChartData(examsTotalsByCategory),
+    [examsTotalsByCategory]
+  );
+
+  const totalQuizzesData = useMemo(
+    () => toPieData(quizzesTotalsByCategory),
+    [quizzesTotalsByCategory]
+  );
+
+  const totalProjectsData = useMemo(
+    () => projectsTotalsPieData,
+    [projectsTotalsByCategory]
+  );
+
+  // Today data (always using today dummy counts)
+  const todayExamsData = useMemo(
+    () => toBarChartData(todayDummyCounts.exams),
+    [todayDummyCounts.exams]
+  );
+
+  const todayQuizzesData = useMemo(
+    () => toPieData(todayDummyCounts.quizzes),
+    [todayDummyCounts.quizzes]
+  );
+
+  const todayProjectsData = useMemo(
+    () => toPieData(todayDummyCounts.projects),
+    [todayDummyCounts.projects]
+  );
+
+  // Total customized data
+  const totalCustomizedExamsData = useMemo(
+    () => toPieData(customizedTotalsByCategory),
+    [customizedTotalsByCategory]
+  );
+
+  const totalCustomizedQuizzesData = useMemo(
+    () => toPieData(customizedQuizzesTotalsByCategory),
+    [customizedQuizzesTotalsByCategory]
+  );
+
+  // Today customized data
+  const todayCustomizedExamsData = useMemo(
+    () => toPieData(todayDummyCounts.customizedExams),
+    [todayDummyCounts.customizedExams]
+  );
+
+  const todayCustomizedQuizzesData = useMemo(
+    () => toPieData(todayDummyCounts.customizedQuizzes),
+    [todayDummyCounts.customizedQuizzes]
+  );
+
+  const gradeOptions = useMemo(() => {
+    if (!statsData) return [] as { id: string; name: string }[];
+    const uniq = new Map<string, string>();
+    statsData.breakdown.gradesWithStrength.forEach((g) => {
+      uniq.set(g.standardId, g.grade);
+    });
+    return Array.from(uniq.entries()).map(([id, name]) => ({ id, name }));
+  }, [statsData]);
+
+  const sectionOptions = useMemo(() => {
+    if (!statsData)
+      return [] as { id: string; name: string; standardId?: string }[];
+    // If grade selected, try to include only sections that belong to that grade when possible
+    const all = statsData.breakdown.sectionsWithStrength.map((s) => ({
+      id: s.sectionId,
+      name: s.section,
+      standardId: s.standardId,
+    }));
+    const uniq = new Map<
+      string,
+      { id: string; name: string; standardId?: string }
+    >();
+    all.forEach((s) => {
+      if (!uniq.has(s.id)) uniq.set(s.id, s);
+    });
+    let list = Array.from(uniq.values());
+    if (selectedGradeId)
+      list = list.filter((s) => s.standardId === selectedGradeId);
+    return list;
+  }, [statsData, selectedGradeId]);
+
+  const aggregateBySelection = (type: "exams" | "quizzes") => {
+    const totals: Record<Category, number> = { ...emptyCategoryCounts };
+    if (!statsData) return totals;
+    if (selectedSectionId) {
+      const list = statsData.assigned[type].bySectionSubject.filter(
+        (x) => x.sectionId === selectedSectionId
+      );
+      list.forEach((entry) => {
+        const cat = subjectToCategory(entry.subject);
+        totals[cat] += entry.count;
+      });
+      // add UG/PG via section's parent grade when determinable
+      const sec = statsData.breakdown.sectionsWithStrength.find(
+        (s) => s.sectionId === selectedSectionId
+      );
+      if (sec) {
+        const std = statsData.breakdown.gradesWithStrength.find(
+          (g) => g.standardId === sec.standardId
+        );
+        const stdName = (std?.grade || "").toLowerCase();
+        if (stdName === "ug")
+          totals["UG"] += list.reduce((a, b) => a + b.count, 0);
+        if (stdName === "pg")
+          totals["PG"] += list.reduce((a, b) => a + b.count, 0);
+      }
+      return totals;
+    }
+    if (selectedGradeId) {
+      const list = statsData.assigned[type].byClassSubject.filter(
+        (x) => x.standardId === selectedGradeId
+      );
+      list.forEach((entry) => {
+        const cat = subjectToCategory(entry.subject);
+        totals[cat] += entry.count;
+        const std = (entry.standardName || "").toLowerCase();
+        if (std === "ug") totals["UG"] += entry.count;
+        if (std === "pg") totals["PG"] += entry.count;
+      });
+      return totals;
+    }
+    // default school-wide
+    return type === "exams" ? examsTotalsByCategory : quizzesTotalsByCategory;
+  };
+
+  const selectedExamsByCategory = useMemo(
+    () => aggregateBySelection("exams"),
+    [statsData, selectedGradeId, selectedSectionId]
+  );
+  const selectedQuizzesByCategory = useMemo(
+    () => aggregateBySelection("quizzes"),
+    [statsData, selectedGradeId, selectedSectionId]
+  );
+
+  // Projects aggregation by current selection (UG/PG only available)
+  const aggregateProjectsBySelection = () => {
+    const totals: Record<Category, number> = { ...emptyCategoryCounts };
+    if (!statsData) return totals;
+    if (selectedSectionId) {
+      const list = statsData.assigned.projects.bySection.filter(
+        (x) => x.sectionId === selectedSectionId
+      );
+      const sec = statsData.breakdown.sectionsWithStrength.find(
+        (s) => s.sectionId === selectedSectionId
+      );
+      if (sec) {
+        const std = statsData.breakdown.gradesWithStrength.find(
+          (g) => g.standardId === sec.standardId
+        );
+        const stdName = (std?.grade || "").toLowerCase();
+        const count = list.reduce((a, b) => a + b.count, 0);
+        if (stdName === "ug") totals["UG"] += count;
+        if (stdName === "pg") totals["PG"] += count;
+      }
+      return totals;
+    }
+    if (selectedGradeId) {
+      const list = statsData.assigned.projects.byClass.filter(
+        (x) => x.standardId === selectedGradeId
+      );
+      list.forEach((entry) => {
+        const std = (entry.standardName || "").toLowerCase();
+        if (std === "ug") totals["UG"] += entry.count;
+        if (std === "pg") totals["PG"] += entry.count;
+      });
+      return totals;
+    }
+    return projectsTotalsByCategory;
+  };
+
+  const selectedProjectsByCategory = useMemo(
+    () => aggregateProjectsBySelection(),
+    [statsData, selectedGradeId, selectedSectionId, projectsTotalsByCategory]
+  );
+
+  // Total selection data
+  const totalExamsSelectionPieData = useMemo(
+    () => toPieData(selectedExamsByCategory),
+    [selectedExamsByCategory]
+  );
+
+  const totalQuizzesSelectionPieData = useMemo(
+    () => toPieData(selectedQuizzesByCategory),
+    [selectedQuizzesByCategory]
+  );
+
+  const totalProjectsSelectionPieData = useMemo(
+    () => toPieData(selectedProjectsByCategory),
+    [selectedProjectsByCategory]
+  );
+
+  // Today selection data (using today dummy counts)
+  const todayExamsSelectionPieData = useMemo(
+    () => toPieData(todayDummyCounts.exams),
+    [todayDummyCounts.exams]
+  );
+
+  const todayQuizzesSelectionPieData = useMemo(
+    () => toPieData(todayDummyCounts.quizzes),
+    [todayDummyCounts.quizzes]
+  );
+
+  const todayProjectsSelectionPieData = useMemo(
+    () => toPieData(todayDummyCounts.projects),
+    [todayDummyCounts.projects]
+  );
+
+  // Total selection-based customized pies
+  const totalSelectedCustomizedExamsPieData = useMemo(() => {
+    const base = toPieData(selectedExamsByCategory);
+    return base.map((b) => ({
+      label: b.label,
+      value: Math.floor(b.value * 0.4),
+    }));
+  }, [selectedExamsByCategory]);
+
+  const totalSelectedCustomizedQuizzesPieData = useMemo(() => {
+    const base = toPieData(selectedQuizzesByCategory);
+    return base.map((b) => ({
+      label: b.label,
+      value: Math.floor(b.value * 0.35),
+    }));
+  }, [selectedQuizzesByCategory]);
+
+  // Today selection-based customized pies
+  const todaySelectedCustomizedExamsPieData = useMemo(() => {
+    const base = toPieData(todayDummyCounts.customizedExams);
+    return base.map((b) => ({
+      label: b.label,
+      value: Math.floor(b.value * 0.4),
+    }));
+  }, [todayDummyCounts.customizedExams]);
+
+  const todaySelectedCustomizedQuizzesPieData = useMemo(() => {
+    const base = toPieData(todayDummyCounts.customizedQuizzes);
+    return base.map((b) => ({
+      label: b.label,
+      value: Math.floor(b.value * 0.35),
+    }));
+  }, [todayDummyCounts.customizedQuizzes]);
+
+  // ----- Attempted counts and score distributions (dummy) -----
+  const sumValues = (arr: { label: string; value: number }[]) =>
+    arr.reduce((acc, it) => acc + it.value, 0);
+
+  // Total attempt counts
+  const totalExamsAttempts = useMemo(
+    () => Math.floor(sumValues(totalExamsData) * 6),
+    [totalExamsData]
+  );
+  const totalCustomExamsAttempts = useMemo(
+    () => Math.floor(sumValues(totalCustomizedExamsData) * 7),
+    [totalCustomizedExamsData]
+  );
+  const totalQuizzesAttempts = useMemo(
+    () => Math.floor(sumValues(totalQuizzesData) * 5),
+    [totalQuizzesData]
+  );
+  const totalCustomQuizzesAttempts = useMemo(
+    () => Math.floor(sumValues(totalCustomizedQuizzesData) * 6),
+    [totalCustomizedQuizzesData]
+  );
+  const totalProjectsAttempts = useMemo(
+    () => Math.floor(sumValues(totalProjectsData) * 8),
+    [totalProjectsData]
+  );
+
+  // Today attempt counts
+  const todayExamsAttempts = useMemo(
+    () => Math.floor(sumValues(todayExamsData) * 6),
+    [todayExamsData]
+  );
+  const todayCustomExamsAttempts = useMemo(
+    () => Math.floor(sumValues(todayCustomizedExamsData) * 7),
+    [todayCustomizedExamsData]
+  );
+  const todayQuizzesAttempts = useMemo(
+    () => Math.floor(sumValues(todayQuizzesData) * 5),
+    [todayQuizzesData]
+  );
+  const todayCustomQuizzesAttempts = useMemo(
+    () => Math.floor(sumValues(todayCustomizedQuizzesData) * 6),
+    [todayCustomizedQuizzesData]
+  );
+  const todayProjectsAttempts = useMemo(
+    () => Math.floor(sumValues(todayProjectsData) * 8),
+    [todayProjectsData]
+  );
+
+  const toScoreRadar = (total: number) => [
+    { metric: "Low", value: Math.max(0, Math.floor(total * 0.3)) },
+    { metric: "Average", value: Math.max(0, Math.floor(total * 0.5)) },
+    { metric: "High", value: Math.max(0, Math.floor(total * 0.2)) },
+  ];
+
+  // Total score distributions
+  const totalExamsScoreData = useMemo(
+    () => toScoreRadar(totalExamsAttempts),
+    [totalExamsAttempts]
+  );
+  const totalCustomExamsScoreData = useMemo(
+    () => toScoreRadar(totalCustomExamsAttempts),
+    [totalCustomExamsAttempts]
+  );
+  const totalQuizzesScoreData = useMemo(
+    () => toScoreRadar(totalQuizzesAttempts),
+    [totalQuizzesAttempts]
+  );
+  const totalCustomQuizzesScoreData = useMemo(
+    () => toScoreRadar(totalCustomQuizzesAttempts),
+    [totalCustomQuizzesAttempts]
+  );
+  const totalProjectsScoreData = useMemo(
+    () => toScoreRadar(totalProjectsAttempts),
+    [totalProjectsAttempts]
+  );
+
+  // Today score distributions
+  const todayExamsScoreData = useMemo(
+    () => toScoreRadar(todayExamsAttempts),
+    [todayExamsAttempts]
+  );
+  const todayCustomExamsScoreData = useMemo(
+    () => toScoreRadar(todayCustomExamsAttempts),
+    [todayCustomExamsAttempts]
+  );
+  const todayQuizzesScoreData = useMemo(
+    () => toScoreRadar(todayQuizzesAttempts),
+    [todayQuizzesAttempts]
+  );
+  const todayCustomQuizzesScoreData = useMemo(
+    () => toScoreRadar(todayCustomQuizzesAttempts),
+    [todayCustomQuizzesAttempts]
+  );
+  const todayProjectsScoreData = useMemo(
+    () => toScoreRadar(todayProjectsAttempts),
+    [todayProjectsAttempts]
+  );
+
+  // Enhanced student data structure
+  const detailedStudents = useMemo(() => {
+    if (!statsData) return [];
+
+    const subjects = ["Math", "Science", "SST", "English", "UG", "PG"];
+
+    const studentDetails = [
+      {
+        id: "stu-1",
+        name: "Alice Johnson",
+        grade: "UG",
+        section: "A",
+        email: "alice@example.com",
+      },
+      {
+        id: "stu-2",
+        name: "Bob Smith",
+        grade: "UG",
+        section: "B",
+        email: "bob@example.com",
+      },
+      {
+        id: "stu-3",
+        name: "Charlie Brown",
+        grade: "PG",
+        section: "A",
+        email: "charlie@example.com",
+      },
+      {
+        id: "stu-4",
+        name: "Diana Prince",
+        grade: "PG",
+        section: "B",
+        email: "diana@example.com",
+      },
+      {
+        id: "stu-5",
+        name: "Edward Norton",
+        grade: "UG",
+        section: "A",
+        email: "edward@example.com",
+      },
+      {
+        id: "stu-6",
+        name: "Fiona Green",
+        grade: "PG",
+        section: "A",
+        email: "fiona@example.com",
+      },
+      {
+        id: "stu-7",
+        name: "George Lucas",
+        grade: "UG",
+        section: "B",
+        email: "george@example.com",
+      },
+      {
+        id: "stu-8",
+        name: "Helen Troy",
+        grade: "PG",
+        section: "B",
+        email: "helen@example.com",
+      },
+      {
+        id: "stu-9",
+        name: "Ian Malcolm",
+        grade: "UG",
+        section: "A",
+        email: "ian@example.com",
+      },
+      {
+        id: "stu-10",
+        name: "Julia Roberts",
+        grade: "PG",
+        section: "A",
+        email: "julia@example.com",
+      },
+    ];
+
+    // Filter by grade and section
+    let filteredStudents = studentDetails.filter((student) => {
+      const matchGrade = selectedGradeId
+        ? student.grade.toLowerCase() === selectedGradeId.toLowerCase()
+        : true;
+      const matchSection = selectedSectionId
+        ? student.section === selectedSectionId
+        : true;
+      return matchGrade && matchSection;
+    });
+
+    // Add subject-specific data
+    return filteredStudents.map((student) => {
+      const scores = subjects.reduce((acc, subject) => {
+        acc[subject] = {
+          exam: Math.floor(Math.random() * 40) + 60, // 60-100
+          quiz: Math.floor(Math.random() * 30) + 70, // 70-100
+          project: Math.floor(Math.random() * 20) + 80, // 80-100
+          lastActive: new Date(
+            Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000
+          ).toLocaleDateString(),
+        };
+        return acc;
+      }, {} as Record<string, { exam: number; quiz: number; project: number; lastActive: string }>);
+
+      return {
+        ...student,
+        scores,
+        totalScore: Math.floor(Math.random() * 20) + 80, // Overall score
+        attendance: Math.floor(Math.random() * 20) + 80, // 80-100%
+        status: Math.random() > 0.1 ? "Active" : "Inactive",
+      };
+    });
+  }, [statsData, selectedGradeId, selectedSectionId, selectedSubject]);
+
+  const studentsForSelection = useMemo(() => {
+    if (!statsData) return [] as string[];
+    const ids = new Set<string>();
+    const pushIfMatch = (
+      standardId: string,
+      sectionId: string,
+      studentId: string
+    ) => {
+      const matchSection = selectedSectionId
+        ? sectionId === selectedSectionId
+        : true;
+      const matchGrade = selectedGradeId
+        ? standardId === selectedGradeId
+        : true;
+      if (matchSection && matchGrade) ids.add(studentId);
+    };
+    statsData.studentAnalytics.examsLast3.forEach((x) =>
+      pushIfMatch(x.standardId, x.sectionId, x.studentId)
+    );
+    statsData.studentAnalytics.quizzesLast3.forEach((x) =>
+      pushIfMatch(x.standardId, x.sectionId, x.studentId)
+    );
+    statsData.studentAnalytics.projectsLast3.forEach((x) =>
+      pushIfMatch(x.standardId, x.sectionId, x.studentId)
+    );
+    return Array.from(ids);
+  }, [statsData, selectedGradeId, selectedSectionId]);
 
   if (isLoading) {
     return (
@@ -314,322 +1239,11 @@ function AnalyticsPageContent() {
       </div>
     );
   }
-
-  // Calculate completion rates from real data
-  const examCompletionRate =
-    statsData.totals.exams > 0
-      ? (
-          (statsData.totals.completedExams / statsData.totals.exams) *
-          100
-        ).toFixed(1)
-      : "0";
-
-  const quizSubmissionRate =
-    statsData.totals.quizzes > 0
-      ? (
-          (statsData.totals.quizSubmissions / statsData.totals.quizzes) *
-          100
-        ).toFixed(1)
-      : "0";
-
-  const projectCompletionRate =
-    statsData.totals.projects > 0
-      ? (
-          (statsData.totals.completedProjects / statsData.totals.projects) *
-          100
-        ).toFixed(1)
-      : "0";
-
-  // Calculate change percentages from backend data
-  const calculateChange = (
-    current: number,
-    previous: number
-  ): { change: string; changeType: "increase" | "decrease" } => {
-    if (previous === 0) return { change: "+0%", changeType: "increase" };
-    const percentChange = ((current - previous) / previous) * 100;
-    const sign = percentChange >= 0 ? "+" : "";
-    return {
-      change: `${sign}${percentChange.toFixed(1)}%`,
-      changeType: percentChange >= 0 ? "increase" : "decrease",
-    };
-  };
-
-  // Main metrics from actual API data
-  const mainMetrics = [
-    {
-      name: "Total Students",
-      value: statsData.totals.students.toString(),
-      icon: Users,
-      ...calculateChange(
-        statsData.totals.students,
-        Math.max(0, statsData.totals.students - 2)
-      ), // Simulate previous period
-      description: "Active enrolled students",
-    },
-    {
-      name: "Total Quizzes",
-      value: statsData.totals.quizzes.toString(),
-      icon: BookOpen,
-      ...calculateChange(
-        statsData.totals.quizzes,
-        Math.max(0, statsData.totals.quizzes - 5)
-      ), // Simulate previous period
-      description: "Quizzes created this term",
-    },
-    {
-      name: "Total Exams",
-      value: statsData.totals.exams.toString(),
-      icon: GraduationCap,
-      ...calculateChange(
-        statsData.totals.exams,
-        Math.max(0, statsData.totals.exams - 3)
-      ), // Simulate previous period
-      description: "Exams scheduled",
-    },
-    {
-      name: "Total Projects",
-      value: statsData.totals.projects.toString(),
-      icon: Target,
-      ...calculateChange(
-        statsData.totals.projects,
-        Math.max(0, statsData.totals.projects - 1)
-      ), // Simulate previous period
-      description: "Active project assignments",
-    },
-  ];
-
-  // Prepare data for charts - Green gradient color palette
-  const COLORS = [
-    "#4CAF75",
-    "#219653",
-    "#27AE60",
-    "#2ECC71",
-    "#52C41A",
-    "#73D13D",
-    "#95DE64",
-  ];
-
-  // Students by Grade/Class data for radar chart with enhanced dummy data
-  const baseGrades = [
-    "1st Grade",
-    "2nd Grade",
-    "3rd Grade",
-    "4th Grade",
-    "5th Grade",
-    "6th Grade",
-    "7th Grade",
-    "8th Grade",
-    "9th Grade",
-    "10th Grade",
-    "11th Grade",
-    "12th Grade",
-    "UG",
-    "PG",
-  ];
-
-  // Different dummy data sets for each organization
-  const getStudentsPerGradeData = (institutionId: string) => {
-    const dataSets = {
-      // Organization 1 - Balanced distribution
-      "org1": [
-        { grade: "1st ", strength: 18 },
-        { grade: "2nd ", strength: 22 },
-        { grade: "3rd ", strength: 19 },
-        { grade: "4th ", strength: 16 },
-        { grade: "5th ", strength: 21 },
-        { grade: "6th ", strength: 14 },
-        { grade: "7th ", strength: 17 },
-        { grade: "8th ", strength: 13 },
-        { grade: "9th ", strength: 12 },
-        { grade: "10th", strength: 11 },
-        { grade: "11th ", strength: 9 },
-        { grade: "12th", strength: 8 },
-        { grade: "UG", strength: 28 },
-        { grade: "PG", strength: 6 },
-      ],
-      // Organization 2 - Higher secondary focus
-      "org2": [
-        { grade: "1st ", strength: 12 },
-        { grade: "2nd ", strength: 15 },
-        { grade: "3rd ", strength: 18 },
-        { grade: "4th ", strength: 20 },
-        { grade: "5th ", strength: 22 },
-        { grade: "6th ", strength: 25 },
-        { grade: "7th ", strength: 28 },
-        { grade: "8th ", strength: 24 },
-        { grade: "9th ", strength: 30 },
-        { grade: "10th", strength: 35 },
-        { grade: "11th ", strength: 32 },
-        { grade: "12th", strength: 28 },
-        { grade: "UG", strength: 15 },
-        { grade: "PG", strength: 8 },
-      ],
-      // Organization 3 - University focus
-      "org3": [
-        { grade: "1st ", strength: 8 },
-        { grade: "2nd ", strength: 10 },
-        { grade: "3rd ", strength: 12 },
-        { grade: "4th ", strength: 14 },
-        { grade: "5th ", strength: 16 },
-        { grade: "6th ", strength: 18 },
-        { grade: "7th ", strength: 20 },
-        { grade: "8th ", strength: 22 },
-        { grade: "9th ", strength: 24 },
-        { grade: "10th", strength: 26 },
-        { grade: "11th ", strength: 28 },
-        { grade: "12th", strength: 30 },
-        { grade: "UG", strength: 45 },
-        { grade: "PG", strength: 25 },
-      ],
-    };
-
-    return dataSets[institutionId as keyof typeof dataSets] || dataSets.org1;
-  };
-
-  // Map institution IDs to data set keys
-  const getDataSetKey = (institutionId: string, institutions: Institution[]) => {
-    const index = institutions.findIndex(inst => inst.id === institutionId);
-    if (index === 0) return "org1";
-    if (index === 1) return "org2";
-    if (index === 2) return "org3";
-    return "org1"; // Default fallback
-  };
-
-  const dataSetKey = getDataSetKey(selectedInstitutionId, institutions);
-  const studentsPerGrade = getStudentsPerGradeData(dataSetKey);
-
-  // Exams vs Quizzes by Subject for bar chart (top subjects)
-  const mergedBySubject = new Map<
-    string,
-    { subject: string; exams: number; quizzes: number }
-  >();
-  statsData.assigned.exams.bySchoolSubject.forEach((e) => {
-    mergedBySubject.set(e.subject, {
-      subject: e.subject,
-      exams: e.count,
-      quizzes: 0,
-    });
-  });
-  statsData.assigned.quizzes.bySchoolSubject.forEach((q) => {
-    const existing = mergedBySubject.get(q.subject);
-    if (existing) existing.quizzes = q.count;
-    else
-      mergedBySubject.set(q.subject, {
-        subject: q.subject,
-        exams: 0,
-        quizzes: q.count,
-      });
-  });
-  // Different subject data sets for each organization
-  const getSubjectData = (institutionId: string) => {
-    const dataSets = {
-      // Organization 1 - STEM focus
-      "org1": [
-        { label: "Mathematics", value: 95 },
-        { label: "Science", value: 87 },
-        { label: "English", value: 82 },
-        { label: "History", value: 76 },
-        { label: "Physics", value: 91 },
-        { label: "Chemistry", value: 85 },
-        { label: "Biology", value: 89 },
-        { label: "Geography", value: 73 },
-        { label: "Computer Science", value: 94 },
-        { label: "Literature", value: 78 },
-      ],
-      // Organization 2 - Humanities focus
-      "org2": [
-        { label: "Mathematics", value: 88 },
-        { label: "Science", value: 84 },
-        { label: "English", value: 96 },
-        { label: "History", value: 92 },
-        { label: "Physics", value: 86 },
-        { label: "Chemistry", value: 82 },
-        { label: "Biology", value: 89 },
-        { label: "Geography", value: 91 },
-        { label: "Computer Science", value: 87 },
-        { label: "Literature", value: 94 },
-      ],
-      // Organization 3 - Arts focus
-      "org3": [
-        { label: "Mathematics", value: 82 },
-        { label: "Science", value: 78 },
-        { label: "English", value: 98 },
-        { label: "History", value: 95 },
-        { label: "Physics", value: 79 },
-        { label: "Chemistry", value: 81 },
-        { label: "Biology", value: 85 },
-        { label: "Geography", value: 88 },
-        { label: "Computer Science", value: 83 },
-        { label: "Literature", value: 97 },
-      ],
-    };
-
-    return dataSets[institutionId as keyof typeof dataSets] || dataSets.org1;
-  };
-
-  const subjectData = getSubjectData(dataSetKey);
-
-  // Different growth data sets for each organization
-  const getGrowthData = (institutionId: string) => {
-    const dataSets = {
-      // Organization 1 - Steady growth pattern
-      "org1": [
-        { month: "Jan", students: 245 },
-        { month: "Feb", students: 112 },
-        { month: "Mar", students: 387 },
-        { month: "Apr", students: 221 },
-        { month: "May", students: 498 },
-        { month: "Jun", students: 367 },
-        { month: "Jul", students: 623 },
-        { month: "Aug", students: 589 },
-        { month: "Sep", students: 545 },
-        { month: "Oct", students: 812 },
-        { month: "Nov", students: 676 },
-        { month: "Dec", students: 734 },
-      ],
-      // Organization 2 - Seasonal growth pattern
-      "org2": [
-        { month: "Jan", students: 180 },
-        { month: "Feb", students: 95 },
-        { month: "Mar", students: 420 },
-        { month: "Apr", students: 290 },
-        { month: "May", students: 550 },
-        { month: "Jun", students: 480 },
-        { month: "Jul", students: 720 },
-        { month: "Aug", students: 680 },
-        { month: "Sep", students: 620 },
-        { month: "Oct", students: 890 },
-        { month: "Nov", students: 750 },
-        { month: "Dec", students: 820 },
-      ],
-      // Organization 3 - Rapid growth pattern
-      "org3": [
-        { month: "Jan", students: 320 },
-        { month: "Feb", students: 145 },
-        { month: "Mar", students: 510 },
-        { month: "Apr", students: 380 },
-        { month: "May", students: 680 },
-        { month: "Jun", students: 520 },
-        { month: "Jul", students: 850 },
-        { month: "Aug", students: 790 },
-        { month: "Sep", students: 720 },
-        { month: "Oct", students: 1050 },
-        { month: "Nov", students: 890 },
-        { month: "Dec", students: 980 },
-      ],
-    };
-
-    return dataSets[institutionId as keyof typeof dataSets] || dataSets.org1;
-  };
-
-  const growthData = getGrowthData(dataSetKey);
-
-
   return (
     <div className="space-y-8 p-10  ">
       <div className="space-y-4">
         <h1 className="text-3xl font-bold tracking-tight">
-          Institution Analytics Dashboard
+          Super Institution Admin analytics
         </h1>
 
         {/* Institution Selector */}
@@ -652,7 +1266,7 @@ function AnalyticsPageContent() {
         </div>
       </div>
 
-      {/* Main Metrics */}
+      {/* Main Analytics Charts */}
       {isLoadingStats ? (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           {[1, 2, 3, 4].map((i) => (
@@ -671,141 +1285,560 @@ function AnalyticsPageContent() {
       ) : (
         <>
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            {mainMetrics.map((metric) => (
-              <Card
-                key={metric.name}
-                className="group relative overflow-hidden border border-gray-100/60 bg-white/70 backdrop-blur-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg dark:border-white/10 dark:bg-neutral-900/50"
-              >
-                <div className="pointer-events-none absolute -right-6 -top-6 h-24 w-24 rounded-full bg-gradient-to-br from-primary/10 to-transparent blur-xl" />
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">
-                    {metric.name}
-                  </CardTitle>
-                  <div className="rounded-md p-2 bg-gradient-to-br from-gray-100 to-transparent dark:from-white/10">
-                    <metric.icon className="h-4 w-4 text-muted-foreground" />
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold tracking-tight">{metric.value}</div>
+            <Card className="group relative overflow-hidden border border-gray-100/60 bg-white/70 backdrop-blur-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg dark:border-white/10 dark:bg-neutral-900/50">
+              <div className="pointer-events-none absolute -right-6 -top-6 h-24 w-24 rounded-full bg-gradient-to-br from-blue-500/10 to-transparent blur-xl" />
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">
+                  Total Students
+                </CardTitle>
+                <div className="rounded-md p-2 bg-gradient-to-br from-gray-100 to-transparent dark:from-white/10">
+                  <Users className="h-4 w-4 text-blue-600" />
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold tracking-tight">
+                  {statsData.totals.students}
+                </div>
+                <div className="mt-2">
+                  <span className="inline-flex items-center rounded-full border border-blue-200 bg-blue-50 px-2 py-0.5 text-[10px] font-medium text-blue-700 dark:border-blue-900/40 dark:bg-blue-950/40 dark:text-blue-400">
+                    +12% from last month
+                  </span>
+                </div>
+              </CardContent>
+            </Card>
+            <Card className="group relative overflow-hidden border border-gray-100/60 bg-white/70 backdrop-blur-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg dark:border-white/10 dark:bg-neutral-900/50">
+              <div className="pointer-events-none absolute -right-6 -top-6 h-24 w-24 rounded-full bg-gradient-to-br from-green-500/10 to-transparent blur-xl" />
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">
+                  Total Grades
+                </CardTitle>
+                <div className="rounded-md p-2 bg-gradient-to-br from-gray-100 to-transparent dark:from-white/10">
+                  <GraduationCap className="h-4 w-4 text-green-600" />
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold tracking-tight">
+                  {gradeOptions.length}
+                </div>
+                <div className="mt-2">
+                  <span className="inline-flex items-center rounded-full border border-green-200 bg-green-50 px-2 py-0.5 text-[10px] font-medium text-green-700 dark:border-green-900/40 dark:bg-green-950/40 dark:text-green-400">
+                    +2 new this month
+                  </span>
+                </div>
+              </CardContent>
+            </Card>
+            <Card className="group relative overflow-hidden border border-gray-100/60 bg-white/70 backdrop-blur-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg dark:border-white/10 dark:bg-neutral-900/50">
+              <div className="pointer-events-none absolute -right-6 -top-6 h-24 w-24 rounded-full bg-gradient-to-br from-purple-500/10 to-transparent blur-xl" />
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">
+                  Total Sections
+                </CardTitle>
+                <div className="rounded-md p-2 bg-gradient-to-br from-gray-100 to-transparent dark:from-white/10">
+                  <BookOpen className="h-4 w-4 text-purple-600" />
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold tracking-tight">
+                  {sectionOptions.length}
+                </div>
+                <div className="mt-2">
+                  <span className="inline-flex items-center rounded-full border border-purple-200 bg-purple-50 px-2 py-0.5 text-[10px] font-medium text-purple-700 dark:border-purple-900/40 dark:bg-purple-950/40 dark:text-purple-400">
+                    +8 new this month
+                  </span>
+                </div>
+              </CardContent>
+            </Card>
+            <Card className="group relative overflow-hidden border border-gray-100/60 bg-white/70 backdrop-blur-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg dark:border-white/10 dark:bg-neutral-900/50">
+              <div className="pointer-events-none absolute -right-6 -top-6 h-24 w-24 rounded-full bg-gradient-to-br from-orange-500/10 to-transparent blur-xl" />
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">
+                  Total Teachers
+                </CardTitle>
+                <div className="rounded-md p-2 bg-gradient-to-br from-gray-100 to-transparent dark:from-white/10">
+                  <Award className="h-4 w-4 text-orange-600" />
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold tracking-tight">
+                  {USE_DUMMY ? 85 : 0}
+                </div>
+                {!USE_DUMMY && (
                   <p className="text-xs text-muted-foreground mt-2">
-                    {metric.description}
+                    Placeholder
                   </p>
-                </CardContent>
-              </Card>
-            ))}
+                )}
+                {USE_DUMMY && (
+                  <div className="mt-2">
+                    <span className="inline-flex items-center rounded-full border border-orange-200 bg-orange-50 px-2 py-0.5 text-[10px] font-medium text-orange-700 dark:border-orange-900/40 dark:bg-orange-950/40 dark:text-orange-400">
+                      +5 new teachers
+                    </span>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </div>
 
-          {/* Performance Metrics - Key Performance Indicators */}
-          <ValueLineBarChart
-                data={(() => {
-                  const kpiDataSets = {
-                    "org1": [
-                      { month: "Students", desktop: 384 },
-                      { month: "Teachers", desktop: 156 },
-                      { month: "Courses", desktop: 89 },
-                      { month: "Exams", desktop: 234 },
-                      { month: "Projects", desktop: 670 },
-                      { month: "Avg Score", desktop: 824 },
-                      { month: "Certifications", desktop: 112 },
-                      { month: "Workshops", desktop: 54 },
-                      { month: "Clubs", desktop: 380 },
-                      { month: "Events", desktop: 120 },
-                      { month: "Alumni", desktop: 410 },
-                      { month: "Mentors", desktop: 45 },
-                    ],
-                    "org2": [
-                      { month: "Students", desktop: 450 },
-                      { month: "Teachers", desktop: 180 },
-                      { month: "Courses", desktop: 120 },
-                      { month: "Exams", desktop: 290 },
-                      { month: "Projects", desktop: 580 },
-                      { month: "Avg Score", desktop: 790 },
-                      { month: "Certifications", desktop: 145 },
-                      { month: "Workshops", desktop: 68 },
-                      { month: "Clubs", desktop: 320 },
-                      { month: "Events", desktop: 95 },
-                      { month: "Alumni", desktop: 380 },
-                      { month: "Mentors", desktop: 52 },
-                    ],
-                    "org3": [
-                      { month: "Students", desktop: 520 },
-                      { month: "Teachers", desktop: 210 },
-                      { month: "Courses", desktop: 145 },
-                      { month: "Exams", desktop: 340 },
-                      { month: "Projects", desktop: 720 },
-                      { month: "Avg Score", desktop: 880 },
-                      { month: "Certifications", desktop: 175 },
-                      { month: "Workshops", desktop: 82 },
-                      { month: "Clubs", desktop: 420 },
-                      { month: "Events", desktop: 140 },
-                      { month: "Alumni", desktop: 490 },
-                      { month: "Mentors", desktop: 68 },
-                    ],
-                  };
-                  return kpiDataSets[dataSetKey as keyof typeof kpiDataSets] || kpiDataSets.org1;
-                })()}
-                title="Key Performance Indicators"
-                subtitle="Maximum values across different educational metrics"
-                changeType="increase"
+          {/* TOTAL STATS CHARTS */}
+          <div className="space-y-8">
+            <h2 className="text-2xl font-bold tracking-tight">
+              Total Statistics
+            </h2>
+            {/* Total Subject Charts - Pie Charts */}
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+              <RoundedPieChart
+                data={totalExamsData}
+                title="Total Exams - by Subject"
+                subtitle="Math, Science, Social studies, English, UG, PG"
               />
+              <RoundedPieChart
+                data={totalQuizzesData}
+                title="Total Quizzes - by Subject"
+                subtitle="Math, Science, Social studies, English, UG, PG"
+              />
+              <RoundedPieChart
+                data={totalProjectsData}
+                title="Total Projects - by Subject"
+                subtitle="UG/PG available; subjects pending"
+              />
+            </div>
 
-          {/* Charts Grid */}
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {/* Students Distribution by Grade - Glowing Stroke Radar Chart */}
-            <GlowingStrokeRadarChart data={studentsPerGrade} />
-
-            {/* Student Growth Over Time - Rainbow Glow Gradient Line Chart */}
-            <RainbowGlowGradientLineChart
-              data={growthData}
-              title="Student Growth Trends"
-              subtitle="Monthly enrollment growth"
-              changeType="increase"
-            />
-
-            {/* Student Performance Distribution - Increase Size Pie Chart */}
-            <IncreaseSizePieChart />
-            
+            {/* Total Customized Exams/Quizzes */}
+            <div className="grid gap-6 md:grid-cols-2">
+              <RoundedPieChart
+                data={totalCustomizedExamsData}
+                title="Total Customized Exams - by Subject"
+                subtitle="Math, Science, Social studies, English, UG, PG"
+              />
+              <RoundedPieChart
+                data={totalCustomizedQuizzesData}
+                title="Total Customized Quizzes - by Subject"
+                subtitle="Math, Science, Social studies, English, UG, PG"
+              />
+            </div>
           </div>
 
-          {/* Charts Row - Completion Rates and Subject Analysis */}
-          <div className="grid gap-6 md:grid-cols-2">
-            {/* Completion Rates - Rounded Pie Chart */}
-            <RoundedPieChart
-              data={(() => {
-                const completionDataSets = {
-                  "org1": [
-                    { label: "Exams", value: 85 },
-                    { label: "Quizzes", value: 92 },
-                    { label: "Projects", value: 78 },
-                    { label: "Assignments", value: 88 },
-                  ],
-                  "org2": [
-                    { label: "Exams", value: 90 },
-                    { label: "Quizzes", value: 88 },
-                    { label: "Projects", value: 82 },
-                    { label: "Assignments", value: 91 },
-                  ],
-                  "org3": [
-                    { label: "Exams", value: 87 },
-                    { label: "Quizzes", value: 95 },
-                    { label: "Projects", value: 85 },
-                    { label: "Assignments", value: 89 },
-                  ],
-                };
-                return completionDataSets[dataSetKey as keyof typeof completionDataSets] || completionDataSets.org1;
-              })()}
-              title="Assessment Completion Overview"
-              subtitle="Completion rates across all assessment types"
-              changeType="increase"
-            />
+          {/* TODAY STATS CHARTS */}
+          <div className="space-y-8">
+            <h2 className="text-2xl font-bold tracking-tight">
+              Today Statistics
+            </h2>
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+              <RoundedPieChart
+                data={todayExamsData}
+                title="Today Exams - by Subject"
+                subtitle="Math, Science, Social studies, English, UG, PG"
+              />
+              <RoundedPieChart
+                data={todayQuizzesData}
+                title="Today Quizzes - by Subject"
+                subtitle="Math, Science, Social studies, English, UG, PG"
+              />
+              <RoundedPieChart
+                data={todayProjectsData}
+                title="Today Projects - by Subject"
+                subtitle="UG/PG available; subjects pending"
+              />
+            </div>
 
-            {/* Subject Analysis - Monochrome Bar Chart */}
-            <MonochromeBarChart
-              data={subjectData}
-              title="Subject Performance Analysis"
-              subtitle="Average scores across all subjects"
-              changeType="increase"
-            />
+            {/* Today Customized Exams/Quizzes */}
+            <div className="grid gap-6 md:grid-cols-2">
+              <RoundedPieChart
+                data={todayCustomizedExamsData}
+                title="Today Customized Exams - by Subject"
+                subtitle="Math, Science, Social studies, English, UG, PG"
+              />
+              <RoundedPieChart
+                data={todayCustomizedQuizzesData}
+                title="Today Customized Quizzes - by Subject"
+                subtitle="Math, Science, Social studies, English, UG, PG"
+              />
+            </div>
+          </div>
+
+          {/* Grade Vise & Section Vise Stats */}
+          <div className="space-y-8">
+            <div className="flex items-center justify-between">
+              <h2 className="text-2xl font-bold tracking-tight">
+                Grade & Section Wise Statistics
+              </h2>
+            </div>
+
+            {/* Grade and Section Selectors */}
+            <div className="grid gap-4 md:grid-cols-2 max-w-md">
+              <div>
+                <label className="text-sm font-medium mb-2 block">Select Grade</label>
+                <select
+                  value={selectedGradeId}
+                  onChange={(e) => setSelectedGradeId(e.target.value)}
+                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                >
+                  <option value="">All Grades</option>
+                  {gradeOptions.map((grade) => (
+                    <option key={grade.id} value={grade.id}>
+                      {grade.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="text-sm font-medium mb-2 block">Select Section</label>
+                <select
+                  value={selectedSectionId}
+                  onChange={(e) => setSelectedSectionId(e.target.value)}
+                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                >
+                  <option value="">All Sections</option>
+                  {sectionOptions
+                    .filter((section) =>
+                      !selectedGradeId || section.standardId === selectedGradeId
+                    )
+                    .map((section) => (
+                      <option key={section.id} value={section.id}>
+                        {section.name} ({section.standardId?.includes('ug') ? 'UG' : 'PG'})
+                      </option>
+                    ))}
+                </select>
+              </div>
+            </div>
+
+            {/* Exam Section with Toggle */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-4">
+                <h3 className="text-xl font-semibold">Exams</h3>
+                <div className="flex bg-muted rounded-md p-1">
+                  <button
+                    onClick={() => setExamMode("regular")}
+                    className={`px-3 py-1 rounded-sm text-sm font-medium transition-colors ${
+                      examMode === "regular"
+                        ? "bg-white text-black shadow-sm"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    Regular Exams
+                  </button>
+                  <button
+                    onClick={() => setExamMode("customized")}
+                    className={`px-3 py-1 rounded-sm text-sm font-medium transition-colors ${
+                      examMode === "customized"
+                        ? "bg-white text-black shadow-sm"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    Customized Exams
+                  </button>
+                </div>
+              </div>
+
+              {/* Exam Score Distribution Charts */}
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {["Math", "Science", "SST", "English", "UG", "PG"].map((subject) => (
+                  <Card key={subject} className="p-4">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-sm font-medium">
+                        {subject} - {examMode === "regular" ? "Regular" : "Customized"}
+                      </CardTitle>
+                      <CardDescription className="text-xs">
+                        Students attempted: {Math.floor(Math.random() * 50) + 20}
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <RoundedPieChart
+                        data={[
+                          { label: "Low (0-50)", value: Math.floor(Math.random() * 20) + 5 },
+                          { label: "Average (51-80)", value: Math.floor(Math.random() * 25) + 10 },
+                          { label: "High (81-100)", value: Math.floor(Math.random() * 15) + 5 },
+                        ]}
+                        title=""
+                        subtitle=""
+                      />
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </div>
+
+            {/* Quiz Section with Toggle */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-4">
+                <h3 className="text-xl font-semibold">Quizzes</h3>
+                <div className="flex bg-muted rounded-md p-1">
+                  <button
+                    onClick={() => setQuizMode("regular")}
+                    className={`px-3 py-1 rounded-sm text-sm font-medium transition-colors ${
+                      quizMode === "regular"
+                        ? "bg-white text-black shadow-sm"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    Regular Quizzes
+                  </button>
+                  <button
+                    onClick={() => setQuizMode("customized")}
+                    className={`px-3 py-1 rounded-sm text-sm font-medium transition-colors ${
+                      quizMode === "customized"
+                        ? "bg-white text-black shadow-sm"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    Customized Quizzes
+                  </button>
+                </div>
+              </div>
+
+              {/* Quiz Score Distribution Charts */}
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {["Math", "Science", "SST", "English", "UG", "PG"].map((subject) => (
+                  <Card key={subject} className="p-4">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-sm font-medium">
+                        {subject} - {quizMode === "regular" ? "Regular" : "Customized"}
+                      </CardTitle>
+                      <CardDescription className="text-xs">
+                        Students attempted: {Math.floor(Math.random() * 40) + 15}
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <RoundedPieChart
+                        data={[
+                          { label: "Low (0-50)", value: Math.floor(Math.random() * 15) + 3 },
+                          { label: "Average (51-80)", value: Math.floor(Math.random() * 20) + 8 },
+                          { label: "High (81-100)", value: Math.floor(Math.random() * 12) + 3 },
+                        ]}
+                        title=""
+                        subtitle=""
+                      />
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </div>
+
+            {/* Projects Section */}
+            <div className="space-y-4">
+              <h3 className="text-xl font-semibold">Projects</h3>
+
+              {/* Project Score Distribution Charts */}
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {["Math", "Science", "SST", "English", "UG", "PG"].map((subject) => (
+                  <Card key={subject} className="p-4">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-sm font-medium">
+                        {subject} - Projects
+                      </CardTitle>
+                      <CardDescription className="text-xs">
+                        Students attempted: {Math.floor(Math.random() * 30) + 10}
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <RoundedPieChart
+                        data={[
+                          { label: "Low (0-50)", value: Math.floor(Math.random() * 8) + 2 },
+                          { label: "Average (51-80)", value: Math.floor(Math.random() * 15) + 5 },
+                          { label: "High (81-100)", value: Math.floor(Math.random() * 10) + 2 },
+                        ]}
+                        title=""
+                        subtitle=""
+                      />
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Enhanced Students list with subject filtering */}
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-xl font-semibold tracking-tight">
+                  Students
+                </h2>
+                <p className="text-muted-foreground text-sm">
+                  Showing students with recent activity{" "}
+                  {selectedGradeId ? "in selected grade" : "across all grades"}
+                  {selectedSectionId ? " and section" : ""}.
+                </p>
+              </div>
+
+              {/* Subject Selector */}
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium">Filter by Subject:</span>
+                <select
+                  value={selectedSubject}
+                  onChange={(e) => setSelectedSubject(e.target.value)}
+                  className="flex h-9 rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                >
+                  <option value="">All Subjects</option>
+                  <option value="Math">Math</option>
+                  <option value="Science">Science</option>
+                  <option value="Social studies">Social studies</option>
+                  <option value="English">English</option>
+                  <option value="UG">UG</option>
+                  <option value="PG">PG</option>
+                </select>
+              </div>
+            </div>
+
+            <Card>
+              <CardContent className="pt-4">
+                <div className="text-sm text-muted-foreground mb-4">
+                  Total Students: {detailedStudents.length}
+                  {selectedSubject && ` | Filtered by: ${selectedSubject}`}
+                </div>
+
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="text-left text-muted-foreground border-b">
+                        <th className="py-3 pr-4 font-medium">Name</th>
+                        <th className="py-3 pr-4 font-medium">Grade</th>
+                        <th className="py-3 pr-4 font-medium">Section</th>
+                        <th className="py-3 pr-4 font-medium">Email</th>
+                        {selectedSubject && (
+                          <>
+                            <th className="py-3 pr-4 font-medium">
+                              Exam Score
+                            </th>
+                            <th className="py-3 pr-4 font-medium">
+                              Quiz Score
+                            </th>
+                            <th className="py-3 pr-4 font-medium">
+                              Project Score
+                            </th>
+                          </>
+                        )}
+                        <th className="py-3 pr-4 font-medium">Total Score</th>
+                        <th className="py-3 pr-4 font-medium">Attendance</th>
+                        <th className="py-3 pr-4 font-medium">Status</th>
+                        <th className="py-3 pr-4 font-medium">Last Active</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {detailedStudents.length > 0 ? (
+                        detailedStudents.map((student) => (
+                          <tr
+                            key={student.id}
+                            className="border-b last:border-b-0 hover:bg-muted/50"
+                          >
+                            <td className="py-3 pr-4">
+                              <div className="font-medium">{student.name}</div>
+                              <div className="text-xs text-muted-foreground font-mono">
+                                {student.id}
+                              </div>
+                            </td>
+                            <td className="py-3 pr-4">
+                              <span
+                                className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                                  student.grade === "UG"
+                                    ? "bg-blue-100 text-blue-800"
+                                    : "bg-green-100 text-green-800"
+                                }`}
+                              >
+                                {student.grade}
+                              </span>
+                            </td>
+                            <td className="py-3 pr-4 font-medium">
+                              {student.section}
+                            </td>
+                            <td className="py-3 pr-4 text-muted-foreground">
+                              {student.email}
+                            </td>
+                            {selectedSubject && (
+                              <>
+                                <td className="py-3 pr-4">
+                                  <span
+                                    className={`font-medium ${
+                                      student.scores[selectedSubject]?.exam >=
+                                      90
+                                        ? "text-green-600"
+                                        : student.scores[selectedSubject]
+                                            ?.exam >= 75
+                                        ? "text-yellow-600"
+                                        : "text-red-600"
+                                    }`}
+                                  >
+                                    {student.scores[selectedSubject]?.exam}%
+                                  </span>
+                                </td>
+                                <td className="py-3 pr-4">
+                                  <span
+                                    className={`font-medium ${
+                                      student.scores[selectedSubject]?.quiz >=
+                                      90
+                                        ? "text-green-600"
+                                        : student.scores[selectedSubject]
+                                            ?.quiz >= 75
+                                        ? "text-yellow-600"
+                                        : "text-red-600"
+                                    }`}
+                                  >
+                                    {student.scores[selectedSubject]?.quiz}%
+                                  </span>
+                                </td>
+                                <td className="py-3 pr-4">
+                                  <span
+                                    className={`font-medium ${
+                                      student.scores[selectedSubject]
+                                        ?.project >= 90
+                                        ? "text-green-600"
+                                        : student.scores[selectedSubject]
+                                            ?.project >= 75
+                                        ? "text-yellow-600"
+                                        : "text-red-600"
+                                    }`}
+                                  >
+                                    {student.scores[selectedSubject]?.project}%
+                                  </span>
+                                </td>
+                              </>
+                            )}
+                            <td className="py-3 pr-4">
+                              <span
+                                className={`font-medium ${
+                                  student.totalScore >= 90
+                                    ? "text-green-600"
+                                    : student.totalScore >= 75
+                                    ? "text-yellow-600"
+                                    : "text-red-600"
+                                }`}
+                              >
+                                {student.totalScore}%
+                              </span>
+                            </td>
+                            <td className="py-3 pr-4">{student.attendance}%</td>
+                            <td className="py-3 pr-4">
+                              <span
+                                className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                                  student.status === "Active"
+                                    ? "bg-green-100 text-green-800"
+                                    : "bg-red-100 text-red-800"
+                                }`}
+                              >
+                                {student.status}
+                              </span>
+                            </td>
+                            <td className="py-3 pr-4 text-muted-foreground">
+                              {selectedSubject
+                                ? student.scores[selectedSubject]?.lastActive
+                                : "Various"}
+                            </td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr>
+                          <td
+                            colSpan={selectedSubject ? 11 : 8}
+                            className="py-8 text-center text-muted-foreground"
+                          >
+                            No students found for the current selection.
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </CardContent>
+            </Card>
           </div>
         </>
       )}
