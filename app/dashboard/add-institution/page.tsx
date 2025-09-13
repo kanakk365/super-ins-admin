@@ -114,14 +114,14 @@ export default function AddInstitutionPage() {
   };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 p-4 pt-8">
       {/* Header */}
-      <div className="flex items-center space-x-4">
+      {/* <div className="flex items-center space-x-4">
         <Button variant="ghost" size="sm" onClick={handleGoBack}>
           <ArrowLeft className="h-4 w-4 mr-2" />
-          Back to Institutions
+          Back
         </Button>
-      </div>
+      </div> */}
 
       <div className="space-y-2">
         <h1 className="text-3xl font-bold tracking-tight flex items-center">
