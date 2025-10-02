@@ -30,6 +30,8 @@ import { useRouter } from "next/navigation";
 import { ValueLineBarChart } from "@/components/ui/value-line-bar-chart";
 import { RoundedPieChart } from "@/components/ui/rounded-pie-chart";
 import { ScoreRadar } from "@/components/ui/score-radar";
+import { BarGraphSection } from "@/components/ui/barchart";
+import { BarGraphSection as BarGraphSectionV2 } from "@/components/ui/barchart2";
 // removed unused IncreaseSizePieChart
 
 // removed CustomIncreaseSizePieChart placeholder component
@@ -191,6 +193,7 @@ function AnalyticsPageContent() {
   const [selectedSubject, setSelectedSubject] = useState<string>("");
   const [examMode, setExamMode] = useState<"regular" | "customized">("regular");
   const [quizMode, setQuizMode] = useState<"regular" | "customized">("regular");
+  const [showMoreContent, setShowMoreContent] = useState(false);
 
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingStats, setIsLoadingStats] = useState(false);
@@ -1378,8 +1381,57 @@ function AnalyticsPageContent() {
             </Card>
           </div>
 
-          {/* TOTAL STATS CHARTS */}
-          <div className="space-y-8">
+          {/* BARCHART SECTION - Version 1 (with Summary Statistics) */}
+          <div className="space-y-4">
+            <div className="border-b pb-2">
+              <h3 className="text-lg font-semibold text-blue-600">Chart Version 1: With Summary Statistics</h3>
+              <p className="text-sm text-muted-foreground">This version includes a legend and summary statistics below the chart</p>
+            </div>
+            <BarGraphSection
+              institutions={institutions}
+              grades={gradeOptions.map(g => ({ id: g.id, name: g.name }))}
+              sections={sectionOptions.map(s => ({ id: s.id, name: s.name }))}
+              onFilterChange={(filters) => {
+                console.log('Bar graph V1 filters changed:', filters);
+                // You can use these filters to update other parts of the analytics
+              }}
+            />
+          </div>
+
+          {/* BARCHART SECTION - Version 2 (with Legend) */}
+          <div className="space-y-4">
+            <div className="border-b pb-2">
+              <h3 className="text-lg font-semibold text-green-600">Chart Version 2: With Legend</h3>
+              <p className="text-sm text-muted-foreground">This version includes an integrated legend in the chart area</p>
+            </div>
+            <BarGraphSectionV2
+              institutions={institutions}
+              grades={gradeOptions.map(g => ({ id: g.id, name: g.name }))}
+              sections={sectionOptions.map(s => ({ id: s.id, name: s.name }))}
+              onFilterChange={(filters) => {
+                console.log('Bar graph V2 filters changed:', filters);
+                // You can use these filters to update other parts of the analytics
+              }}
+            />
+          </div>
+
+          {/* LOAD MORE BUTTON */}
+          {!showMoreContent && (
+            <div className="flex justify-center py-8">
+              <Button
+                onClick={() => setShowMoreContent(true)}
+                className="px-8 py-3 text-lg font-medium bg-primary hover:bg-primary/90"
+              >
+                Load More Analytics
+              </Button>
+            </div>
+          )}
+
+          {/* REMAINING CONTENT */}
+          {showMoreContent && (
+            <>
+              {/* TOTAL STATS CHARTS */}
+              <div className="space-y-8">
             <h2 className="text-2xl font-bold tracking-tight">
               Total Statistics
             </h2>
@@ -1840,8 +1892,11 @@ function AnalyticsPageContent() {
               </CardContent>
             </Card>
           </div>
-        </>
-      )}
+              </>
+            )}
+          </>
+        )}
+      
     </div>
   );
 }
