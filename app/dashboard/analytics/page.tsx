@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, Suspense, useMemo } from "react";
+import { useState, useEffect, Suspense, useMemo, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
 import {
   BarChart3,
@@ -24,17 +24,17 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { apiClient, Institution } from "@/lib/api";
+import {
+  apiClient,
+  type InstitutionAnalyticsResponse,
+  type SubjectCountSummary,
+} from "@/lib/api";
 import { useToast } from "@/components/ui/toaster";
 import { useRouter } from "next/navigation";
-import { ValueLineBarChart } from "@/components/ui/value-line-bar-chart";
 import { RoundedPieChart } from "@/components/ui/rounded-pie-chart";
-import { ScoreRadar } from "@/components/ui/score-radar";
 import { BarGraphSection } from "@/components/ui/barchart";
-import { BarGraphSection as BarGraphSectionV2 } from "@/components/ui/barchart2";
-// removed unused IncreaseSizePieChart
+import { useInstitutions } from "@/lib/hooks/useInstitutions";
 
-// removed CustomIncreaseSizePieChart placeholder component
 
 interface StatsData {
   totals: {
@@ -180,10 +180,13 @@ interface StatsData {
   };
 }
 
+type InstitutionAnalytics = InstitutionAnalyticsResponse["data"];
+
 function AnalyticsPageContent() {
-  const USE_DUMMY = true;
+  const USE_DUMMY = false;
   const [statsData, setStatsData] = useState<StatsData | null>(null);
-  const [institutions, setInstitutions] = useState<Institution[]>([]);
+  const [analyticsData, setAnalyticsData] =
+    useState<InstitutionAnalytics | null>(null);
   const [selectedInstitutionId, setSelectedInstitutionId] =
     useState<string>("");
   const [selectedInstitutionName, setSelectedInstitutionName] =
@@ -195,14 +198,31 @@ function AnalyticsPageContent() {
   const [quizMode, setQuizMode] = useState<"regular" | "customized">("regular");
   const [showMoreContent, setShowMoreContent] = useState(false);
 
-  const [isLoading, setIsLoading] = useState(true);
   const [isLoadingStats, setIsLoadingStats] = useState(false);
+  const [isAuthed, setIsAuthed] = useState(false);
+  const [authChecked, setAuthChecked] = useState(false);
   const { toast } = useToast();
   const router = useRouter();
   const searchParams = useSearchParams();
 
+  const {
+    institutions,
+    isLoading: institutionsLoading,
+    error: institutionsError,
+  } = useInstitutions({ initialLimit: 100, enabled: !USE_DUMMY && isAuthed });
+
+  useEffect(() => {
+    if (!institutionsError) return;
+
+    toast({
+      title: "Error",
+      description: institutionsError.message,
+      variant: "destructive",
+    });
+  }, [institutionsError, toast]);
+
   // Build a complete dummy StatsData for an institution
-  const buildDummyStats = (instId: string): StatsData => {
+  const buildDummyStats = useCallback((instId: string): StatsData => {
     const ugId = `${instId}-grade-ug`;
     const pgId = `${instId}-grade-pg`;
     const sections = [
@@ -368,129 +388,119 @@ function AnalyticsPageContent() {
       },
       growth: { studentsByMonth: [] },
     };
-  };
+  }, []);
 
   useEffect(() => {
-    const checkAuth = () => {
-      if (!apiClient.isAuthenticated()) {
-        if (!USE_DUMMY) {
-          router.push("/");
-          return false;
-        }
-      }
-      return true;
-    };
+    if (USE_DUMMY) {
+      setAuthChecked(true);
+      setIsAuthed(true);
+      return;
+    }
 
-    const loadInstitutions = async () => {
+    const authed = apiClient.isAuthenticated();
+    if (!authed) {
+      router.push("/");
+    } else {
+      setIsAuthed(true);
+    }
+    setAuthChecked(true);
+  }, [router, USE_DUMMY]);
+
+  const loadStatsForInstitution = useCallback(
+    async (institutionId: string) => {
       try {
-        if (!checkAuth()) return;
-
-        setIsLoading(true);
+        setIsLoadingStats(true);
         if (USE_DUMMY) {
-          const dummyInstitutions: Institution[] = [
-            {
-              id: "inst-001",
-              name: "Alpha Institute",
-              type: "University",
-              affiliatedBoard: "UGC",
-              email: "alpha@example.com",
-              phone: "0000000000",
-              website: "alpha.example.com",
-              yearOfEstablishment: "1990",
-              totalStudentStrength: 1200,
-              proofOfInstitutionUrl: "",
-              logoUrl: null,
-              primaryColor: "#000000",
-              secondaryColor: "#ffffff",
-              address: "",
-              approvalStatus: "APPROVED",
-              createdAt: "",
-              updatedAt: "",
-              addedById: "",
-              password: null,
-            },
-            {
-              id: "inst-002",
-              name: "Beta College",
-              type: "College",
-              affiliatedBoard: "AICTE",
-              email: "beta@example.com",
-              phone: "0000000001",
-              website: "beta.example.com",
-              yearOfEstablishment: "2001",
-              totalStudentStrength: 800,
-              proofOfInstitutionUrl: "",
-              logoUrl: null,
-              primaryColor: "#000000",
-              secondaryColor: "#ffffff",
-              address: "",
-              approvalStatus: "APPROVED",
-              createdAt: "",
-              updatedAt: "",
-              addedById: "",
-              password: null,
-            },
-          ];
-          setInstitutions(dummyInstitutions);
-          const first = dummyInstitutions[0];
-          setSelectedInstitutionId(first.id);
-          setSelectedInstitutionName(first.name);
-          setStatsData(buildDummyStats(first.id));
-        } else {
-          const institutionsResponse = await apiClient.getMyInstitutions(
-            1,
-            100
-          );
-          setInstitutions(institutionsResponse.data.data);
-
-          // Hardcode specific institution ID
-          const hardcodedInstitutionId = "cmcx8sm3y0000qe0r6xjq6imo";
-          const targetInstitution = institutionsResponse.data.data.find(
-            (inst) => inst.id === hardcodedInstitutionId
-          );
-
-          if (targetInstitution) {
-            setSelectedInstitutionId(targetInstitution.id);
-            setSelectedInstitutionName(targetInstitution.name);
-            await loadStatsForInstitution(targetInstitution.id);
-          } else if (institutionsResponse.data.data.length > 0) {
-            // Fallback to first institution if hardcoded one not found
-            const firstInstitution = institutionsResponse.data.data[0];
-            setSelectedInstitutionId(firstInstitution.id);
-            setSelectedInstitutionName(firstInstitution.name);
-            await loadStatsForInstitution(firstInstitution.id);
-          }
+          setStatsData(buildDummyStats(institutionId));
+          setAnalyticsData(null);
+          return;
         }
+
+        setStatsData(buildDummyStats(institutionId));
+        const analyticsResponse =
+          await apiClient.getInstitutionAnalytics(institutionId);
+        setAnalyticsData(analyticsResponse.data);
       } catch (error) {
         toast({
           title: "Error",
-          description: "Failed to load institutions",
+          description:
+            error instanceof Error
+              ? error.message
+              : "Failed to load analytics data for this institution",
           variant: "destructive",
         });
+        setStatsData(null);
+        setAnalyticsData(null);
       } finally {
-        setIsLoading(false);
+        setIsLoadingStats(false);
       }
-    };
+    },
+    [USE_DUMMY, buildDummyStats, toast],
+  );
 
-    loadInstitutions();
-  }, [toast, router, searchParams]);
-
-  const loadStatsForInstitution = async (institutionId: string) => {
-    try {
-      setIsLoadingStats(true);
-      const statsResponse = await apiClient.getInstitutionStats(institutionId);
-      setStatsData(statsResponse.data);
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to load analytics data for this institution",
-        variant: "destructive",
-      });
-      setStatsData(null);
-    } finally {
-      setIsLoadingStats(false);
+  useEffect(() => {
+    if (USE_DUMMY) {
+      if (selectedInstitutionId) return;
+      const dummyInstitutionId = "inst-001";
+      setSelectedInstitutionId(dummyInstitutionId);
+      setSelectedInstitutionName("Alpha Institute");
+      setStatsData(buildDummyStats(dummyInstitutionId));
+      return;
     }
+
+    if (!authChecked || !isAuthed) return;
+    if (institutionsLoading) return;
+
+    if (institutions.length === 0) {
+      setSelectedInstitutionId("");
+      setSelectedInstitutionName("");
+      setStatsData(null);
+      setAnalyticsData(null);
+      return;
+    }
+
+    const queryInstitutionId = searchParams.get("institutionId");
+    const nextInstitution =
+      (queryInstitutionId &&
+        institutions.find((inst) => inst.id === queryInstitutionId)) ??
+      institutions[0];
+
+    if (!nextInstitution) return;
+    if (nextInstitution.id === selectedInstitutionId) return;
+
+    setSelectedInstitutionId(nextInstitution.id);
+    setSelectedInstitutionName(nextInstitution.name);
+    setSelectedGradeId("");
+    setSelectedSectionId("");
+
+    void loadStatsForInstitution(nextInstitution.id);
+  }, [
+    USE_DUMMY,
+    authChecked,
+    institutions,
+    institutionsLoading,
+    isAuthed,
+    loadStatsForInstitution,
+    searchParams,
+    selectedInstitutionId,
+    buildDummyStats,
+  ]);
+
+  const isLoading = USE_DUMMY
+    ? !statsData
+    : !authChecked || institutionsLoading || !analyticsData || (isLoadingStats && !analyticsData);
+
+  const formatChangeLabel = (value?: number | null) => {
+    if (value === undefined || value === null) return "+0";
+    return `${value >= 0 ? "+" : ""}${value}`;
   };
+
+  const changeBadgeClasses = (
+    value: number | undefined | null,
+    positive: string,
+    negative: string,
+  ) =>
+    value !== undefined && value !== null && value < 0 ? negative : positive;
 
   const handleInstitutionChange = async (institutionId: string) => {
     const institution = institutions.find((inst) => inst.id === institutionId);
@@ -523,7 +533,7 @@ function AnalyticsPageContent() {
     | "PG"
     | "Other";
 
-  const subjectToCategory = (subjectRaw: string): Category => {
+  const subjectToCategory = useCallback((subjectRaw: string): Category => {
     const s = (subjectRaw || "").toLowerCase();
     if (s.includes("ug")) return "UG";
     if (s.includes("pg")) return "PG";
@@ -557,9 +567,9 @@ function AnalyticsPageContent() {
     )
       return "Social studies";
     return "Other";
-  };
+  }, []);
 
-  const emptyCategoryCounts: Record<Category, number> = {
+  const createEmptyCategoryCounts = () => ({
     Math: 0,
     Science: 0,
     "Social studies": 0,
@@ -567,7 +577,26 @@ function AnalyticsPageContent() {
     UG: 0,
     PG: 0,
     Other: 0,
-  };
+  });
+
+  const countsToCategoryRecord = useCallback(
+    (items: SubjectCountSummary[] | undefined) => {
+      const totals: Record<Category, number> = createEmptyCategoryCounts();
+      (items ?? []).forEach((item) => {
+        const label = item.topic ?? item.subject ?? "";
+        const category = subjectToCategory(label);
+        const countValue =
+          typeof item._count === "number"
+            ? item._count
+            : typeof (item as { count?: number }).count === "number"
+              ? (item as { count: number }).count
+              : 0;
+        totals[category] += countValue;
+      });
+      return totals;
+    },
+    [subjectToCategory],
+  );
 
   // Convert category totals to pie chart data format
   const toPieData = (totals: Record<Category, number>) =>
@@ -584,194 +613,149 @@ function AnalyticsPageContent() {
         value,
       }));
 
-  const aggregateExamsByCategory = (data: StatsData | null) => {
-    const totals: Record<Category, number> = { ...emptyCategoryCounts };
-    if (!data) return totals;
-    // School-wide subjects
-    data.assigned.exams.bySchoolSubject.forEach((entry) => {
-      const cat = subjectToCategory(entry.subject);
-      totals[cat] += entry.count;
-    });
-    // UG/PG via class subjects
-    data.assigned.exams.byClassSubject.forEach((entry) => {
-      const std = (entry.standardName || "").toLowerCase();
-      if (std === "ug") totals["UG"] += entry.count;
-      if (std === "pg") totals["PG"] += entry.count;
-    });
-    return totals;
-  };
-
-  const aggregateQuizzesByCategory = (data: StatsData | null) => {
-    const totals: Record<Category, number> = { ...emptyCategoryCounts };
-    if (!data) return totals;
-    data.assigned.quizzes.bySchoolSubject.forEach((entry) => {
-      const cat = subjectToCategory(entry.subject);
-      totals[cat] += entry.count;
-    });
-    data.assigned.quizzes.byClassSubject.forEach((entry) => {
-      const std = (entry.standardName || "").toLowerCase();
-      if (std === "ug") totals["UG"] += entry.count;
-      if (std === "pg") totals["PG"] += entry.count;
-    });
-    return totals;
-  };
-
-  const aggregateProjectsByCategory = (data: StatsData | null) => {
-    const totals: Record<Category, number> = { ...emptyCategoryCounts };
-    if (!data) return totals;
-    data.assigned.projects.byClass.forEach((entry) => {
-      const std = (entry.standardName || "").toLowerCase();
-      if (std === "ug") totals["UG"] += entry.count;
-      if (std === "pg") totals["PG"] += entry.count;
-    });
-    return totals;
-  };
-
   const examsTotalsByCategory = useMemo(
-    () => aggregateExamsByCategory(statsData),
-    [statsData]
+    () =>
+      countsToCategoryRecord(
+        analyticsData?.totalStatistics?.examsBySubject,
+      ),
+    [analyticsData, countsToCategoryRecord],
   );
+
   const quizzesTotalsByCategory = useMemo(
-    () => aggregateQuizzesByCategory(statsData),
-    [statsData]
+    () =>
+      countsToCategoryRecord(
+        analyticsData?.totalStatistics?.quizzesBySubject,
+      ),
+    [analyticsData, countsToCategoryRecord],
   );
+
   const projectsTotalsByCategory = useMemo(
-    () => aggregateProjectsByCategory(statsData),
-    [statsData]
+    () =>
+      countsToCategoryRecord(
+        analyticsData?.totalStatistics?.projectsBySubject,
+      ),
+    [analyticsData, countsToCategoryRecord],
   );
 
-  const quizzesTotalsPieData = useMemo(
-    () => toPieData(quizzesTotalsByCategory),
-    [quizzesTotalsByCategory]
+  const customizedTotalsByCategory = useMemo(
+    () =>
+      countsToCategoryRecord(
+        analyticsData?.totalStatistics?.customizedExamsBySubject,
+      ),
+    [analyticsData, countsToCategoryRecord],
   );
-  const projectsTotalsPieData = useMemo(
-    () => toPieData(projectsTotalsByCategory),
-    [projectsTotalsByCategory]
+
+  const customizedQuizzesTotalsByCategory = useMemo(
+    () =>
+      countsToCategoryRecord(
+        analyticsData?.totalStatistics?.customizedQuizzesBySubject,
+      ),
+    [analyticsData, countsToCategoryRecord],
   );
 
-  // ----- Dummy Customized Stats -----
-  const customizedTotalsByCategory = useMemo(() => {
-    // Derive from totals to keep consistent proportions
-    const derived: Record<Category, number> = { ...emptyCategoryCounts };
-    Object.entries(examsTotalsByCategory).forEach(([k, v]) => {
-      derived[k as Category] = Math.floor(v * 0.4);
-    });
-    return derived;
-  }, [examsTotalsByCategory]);
+  const todayExamsTotalsByCategory = useMemo(
+    () =>
+      countsToCategoryRecord(
+        analyticsData?.todayStatistics?.examsBySubject,
+      ),
+    [analyticsData, countsToCategoryRecord],
+  );
 
-  const customizedQuizzesTotalsByCategory = useMemo(() => {
-    const derived: Record<Category, number> = { ...emptyCategoryCounts };
-    Object.entries(quizzesTotalsByCategory).forEach(([k, v]) => {
-      derived[k as Category] = Math.floor(v * 0.35);
-    });
-    return derived;
-  }, [quizzesTotalsByCategory]);
+  const todayQuizzesTotalsByCategory = useMemo(
+    () =>
+      countsToCategoryRecord(
+        analyticsData?.todayStatistics?.quizzesBySubject,
+      ),
+    [analyticsData, countsToCategoryRecord],
+  );
 
-  const todayDummyCounts = useMemo(() => {
-    const base: Record<Category, number> = { ...emptyCategoryCounts };
-    // keep small illustrative numbers
-    return {
-      exams: {
-        ...base,
-        Math: 5,
-        Science: 4,
-        "Social studies": 3,
-        English: 6,
-        UG: 2,
-        PG: 1,
-      },
-      quizzes: {
-        ...base,
-        Math: 8,
-        Science: 7,
-        "Social studies": 5,
-        English: 9,
-        UG: 3,
-        PG: 2,
-      },
-      projects: {
-        ...base,
-        Math: 1,
-        Science: 1,
-        "Social studies": 1,
-        English: 1,
-        UG: 2,
-        PG: 1,
-      },
-      customizedExams: {
-        ...base,
-        Math: 3,
-        Science: 2,
-        "Social studies": 2,
-        English: 4,
-        UG: 1,
-        PG: 1,
-      },
-      customizedQuizzes: {
-        ...base,
-        Math: 4,
-        Science: 3,
-        "Social studies": 3,
-        English: 5,
-        UG: 2,
-        PG: 1,
-      },
-    } as const;
-  }, []);
+  const todayProjectsTotalsByCategory = useMemo(
+    () =>
+      countsToCategoryRecord(
+        analyticsData?.todayStatistics?.projectsBySubject,
+      ),
+    [analyticsData, countsToCategoryRecord],
+  );
 
-  // Total data (always using totals)
+  const todayCustomizedExamsTotalsByCategory = useMemo(
+    () =>
+      countsToCategoryRecord(
+        analyticsData?.todayStatistics?.customizedExamsBySubject,
+      ),
+    [analyticsData, countsToCategoryRecord],
+  );
+
+  const todayCustomizedQuizzesTotalsByCategory = useMemo(
+    () =>
+      countsToCategoryRecord(
+        analyticsData?.todayStatistics?.customizedQuizzesBySubject,
+      ),
+    [analyticsData, countsToCategoryRecord],
+  );
+
   const totalExamsData = useMemo(
     () => toBarChartData(examsTotalsByCategory),
-    [examsTotalsByCategory]
+    [examsTotalsByCategory],
   );
 
   const totalQuizzesData = useMemo(
     () => toPieData(quizzesTotalsByCategory),
-    [quizzesTotalsByCategory]
+    [quizzesTotalsByCategory],
   );
 
   const totalProjectsData = useMemo(
-    () => projectsTotalsPieData,
-    [projectsTotalsByCategory]
+    () => toPieData(projectsTotalsByCategory),
+    [projectsTotalsByCategory],
   );
 
-  // Today data (always using today dummy counts)
   const todayExamsData = useMemo(
-    () => toBarChartData(todayDummyCounts.exams),
-    [todayDummyCounts.exams]
+    () => toBarChartData(todayExamsTotalsByCategory),
+    [todayExamsTotalsByCategory],
   );
 
   const todayQuizzesData = useMemo(
-    () => toPieData(todayDummyCounts.quizzes),
-    [todayDummyCounts.quizzes]
+    () => toPieData(todayQuizzesTotalsByCategory),
+    [todayQuizzesTotalsByCategory],
   );
 
   const todayProjectsData = useMemo(
-    () => toPieData(todayDummyCounts.projects),
-    [todayDummyCounts.projects]
+    () => toPieData(todayProjectsTotalsByCategory),
+    [todayProjectsTotalsByCategory],
   );
 
-  // Total customized data
   const totalCustomizedExamsData = useMemo(
     () => toPieData(customizedTotalsByCategory),
-    [customizedTotalsByCategory]
+    [customizedTotalsByCategory],
   );
 
   const totalCustomizedQuizzesData = useMemo(
     () => toPieData(customizedQuizzesTotalsByCategory),
-    [customizedQuizzesTotalsByCategory]
+    [customizedQuizzesTotalsByCategory],
   );
 
-  // Today customized data
   const todayCustomizedExamsData = useMemo(
-    () => toPieData(todayDummyCounts.customizedExams),
-    [todayDummyCounts.customizedExams]
+    () => toPieData(todayCustomizedExamsTotalsByCategory),
+    [todayCustomizedExamsTotalsByCategory],
   );
 
   const todayCustomizedQuizzesData = useMemo(
-    () => toPieData(todayDummyCounts.customizedQuizzes),
-    [todayDummyCounts.customizedQuizzes]
+    () => toPieData(todayCustomizedQuizzesTotalsByCategory),
+    [todayCustomizedQuizzesTotalsByCategory],
   );
+
+  const performanceBySubjectData = useMemo(() => {
+    if (!analyticsData?.performanceBySubject?.length) {
+      return undefined;
+    }
+
+    return analyticsData.performanceBySubject.map((item) => ({
+      subject: item.subject ?? "Unknown",
+      dull: item.dull ?? 0,
+      normal: item.normal ?? 0,
+      good: item.good ?? 0,
+      excellent: item.excellent ?? 0,
+    }));
+  }, [analyticsData]);
 
   const gradeOptions = useMemo(() => {
     if (!statsData) return [] as { id: string; name: string }[];
@@ -805,7 +789,7 @@ function AnalyticsPageContent() {
   }, [statsData, selectedGradeId]);
 
   const aggregateBySelection = (type: "exams" | "quizzes") => {
-    const totals: Record<Category, number> = { ...emptyCategoryCounts };
+    const totals: Record<Category, number> = createEmptyCategoryCounts();
     if (!statsData) return totals;
     if (selectedSectionId) {
       const list = statsData.assigned[type].bySectionSubject.filter(
@@ -859,7 +843,7 @@ function AnalyticsPageContent() {
 
   // Projects aggregation by current selection (UG/PG only available)
   const aggregateProjectsBySelection = () => {
-    const totals: Record<Category, number> = { ...emptyCategoryCounts };
+    const totals: Record<Category, number> = createEmptyCategoryCounts();
     if (!statsData) return totals;
     if (selectedSectionId) {
       const list = statsData.assigned.projects.bySection.filter(
@@ -916,18 +900,18 @@ function AnalyticsPageContent() {
 
   // Today selection data (using today dummy counts)
   const todayExamsSelectionPieData = useMemo(
-    () => toPieData(todayDummyCounts.exams),
-    [todayDummyCounts.exams]
+    () => toPieData(todayExamsTotalsByCategory),
+    [todayExamsTotalsByCategory]
   );
 
   const todayQuizzesSelectionPieData = useMemo(
-    () => toPieData(todayDummyCounts.quizzes),
-    [todayDummyCounts.quizzes]
+    () => toPieData(todayQuizzesTotalsByCategory),
+    [todayQuizzesTotalsByCategory]
   );
 
   const todayProjectsSelectionPieData = useMemo(
-    () => toPieData(todayDummyCounts.projects),
-    [todayDummyCounts.projects]
+    () => toPieData(todayProjectsTotalsByCategory),
+    [todayProjectsTotalsByCategory]
   );
 
   // Total selection-based customized pies
@@ -948,21 +932,15 @@ function AnalyticsPageContent() {
   }, [selectedQuizzesByCategory]);
 
   // Today selection-based customized pies
-  const todaySelectedCustomizedExamsPieData = useMemo(() => {
-    const base = toPieData(todayDummyCounts.customizedExams);
-    return base.map((b) => ({
-      label: b.label,
-      value: Math.floor(b.value * 0.4),
-    }));
-  }, [todayDummyCounts.customizedExams]);
+  const todaySelectedCustomizedExamsPieData = useMemo(
+    () => toPieData(todayCustomizedExamsTotalsByCategory),
+    [todayCustomizedExamsTotalsByCategory]
+  );
 
-  const todaySelectedCustomizedQuizzesPieData = useMemo(() => {
-    const base = toPieData(todayDummyCounts.customizedQuizzes);
-    return base.map((b) => ({
-      label: b.label,
-      value: Math.floor(b.value * 0.35),
-    }));
-  }, [todayDummyCounts.customizedQuizzes]);
+  const todaySelectedCustomizedQuizzesPieData = useMemo(
+    () => toPieData(todayCustomizedQuizzesTotalsByCategory),
+    [todayCustomizedQuizzesTotalsByCategory]
+  );
 
   // ----- Attempted counts and score distributions (dummy) -----
   const sumValues = (arr: { label: string; value: number }[]) =>
@@ -1300,11 +1278,19 @@ function AnalyticsPageContent() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold tracking-tight">
-                  {statsData.totals.students}
+                  {(analyticsData?.summary.totalStudents.count ?? 0).toLocaleString()}
                 </div>
                 <div className="mt-2">
-                  <span className="inline-flex items-center rounded-full border border-blue-200 bg-blue-50 px-2 py-0.5 text-[10px] font-medium text-blue-700 dark:border-blue-900/40 dark:bg-blue-950/40 dark:text-blue-400">
-                    +12% from last month
+                  <span
+                    className={changeBadgeClasses(
+                      analyticsData?.summary.totalStudents.changeFromLastMonth,
+                      "inline-flex items-center rounded-full border border-blue-200 bg-blue-50 px-2 py-0.5 text-[10px] font-medium text-blue-700 dark:border-blue-900/40 dark:bg-blue-950/40 dark:text-blue-400",
+                      "inline-flex items-center rounded-full border border-red-200 bg-red-50 px-2 py-0.5 text-[10px] font-medium text-red-700 dark:border-red-900/40 dark:bg-red-950/40 dark:text-red-400",
+                    )}
+                  >
+                    {formatChangeLabel(
+                      analyticsData?.summary.totalStudents.changeFromLastMonth,
+                    )} from last month
                   </span>
                 </div>
               </CardContent>
@@ -1321,11 +1307,19 @@ function AnalyticsPageContent() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold tracking-tight">
-                  {gradeOptions.length}
+                  {(analyticsData?.summary.totalGrades.count ?? 0).toLocaleString()}
                 </div>
                 <div className="mt-2">
-                  <span className="inline-flex items-center rounded-full border border-green-200 bg-green-50 px-2 py-0.5 text-[10px] font-medium text-green-700 dark:border-green-900/40 dark:bg-green-950/40 dark:text-green-400">
-                    +2 new this month
+                  <span
+                    className={changeBadgeClasses(
+                      analyticsData?.summary.totalGrades.changeFromLastMonth,
+                      "inline-flex items-center rounded-full border border-green-200 bg-green-50 px-2 py-0.5 text-[10px] font-medium text-green-700 dark:border-green-900/40 dark:bg-green-950/40 dark:text-green-400",
+                      "inline-flex items-center rounded-full border border-red-200 bg-red-50 px-2 py-0.5 text-[10px] font-medium text-red-700 dark:border-red-900/40 dark:bg-red-950/40 dark:text-red-400",
+                    )}
+                  >
+                    {formatChangeLabel(
+                      analyticsData?.summary.totalGrades.changeFromLastMonth,
+                    )} from last month
                   </span>
                 </div>
               </CardContent>
@@ -1342,11 +1336,19 @@ function AnalyticsPageContent() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold tracking-tight">
-                  {sectionOptions.length}
+                  {(analyticsData?.summary.totalSections.count ?? 0).toLocaleString()}
                 </div>
                 <div className="mt-2">
-                  <span className="inline-flex items-center rounded-full border border-purple-200 bg-purple-50 px-2 py-0.5 text-[10px] font-medium text-purple-700 dark:border-purple-900/40 dark:bg-purple-950/40 dark:text-purple-400">
-                    +8 new this month
+                  <span
+                    className={changeBadgeClasses(
+                      analyticsData?.summary.totalSections.changeFromLastMonth,
+                      "inline-flex items-center rounded-full border border-purple-200 bg-purple-50 px-2 py-0.5 text-[10px] font-medium text-purple-700 dark:border-purple-900/40 dark:bg-purple-950/40 dark:text-purple-400",
+                      "inline-flex items-center rounded-full border border-red-200 bg-red-50 px-2 py-0.5 text-[10px] font-medium text-red-700 dark:border-red-900/40 dark:bg-red-950/40 dark:text-red-400",
+                    )}
+                  >
+                    {formatChangeLabel(
+                      analyticsData?.summary.totalSections.changeFromLastMonth,
+                    )} from last month
                   </span>
                 </div>
               </CardContent>
@@ -1363,53 +1365,37 @@ function AnalyticsPageContent() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold tracking-tight">
-                  {USE_DUMMY ? 85 : 0}
+                  {(analyticsData?.summary.totalTeachers.count ?? 0).toLocaleString()}
                 </div>
-                {!USE_DUMMY && (
-                  <p className="text-xs text-muted-foreground mt-2">
-                    Placeholder
-                  </p>
-                )}
-                {USE_DUMMY && (
-                  <div className="mt-2">
-                    <span className="inline-flex items-center rounded-full border border-orange-200 bg-orange-50 px-2 py-0.5 text-[10px] font-medium text-orange-700 dark:border-orange-900/40 dark:bg-orange-950/40 dark:text-orange-400">
-                      +5 new teachers
-                    </span>
-                  </div>
-                )}
+                <div className="mt-2">
+                  <span
+                    className={changeBadgeClasses(
+                      analyticsData?.summary.totalTeachers.changeFromLastMonth,
+                      "inline-flex items-center rounded-full border border-orange-200 bg-orange-50 px-2 py-0.5 text-[10px] font-medium text-orange-700 dark:border-orange-900/40 dark:bg-orange-950/40 dark:text-orange-400",
+                      "inline-flex items-center rounded-full border border-red-200 bg-red-50 px-2 py-0.5 text-[10px] font-medium text-red-700 dark:border-red-900/40 dark:bg-red-950/40 dark:text-red-400",
+                    )}
+                  >
+                    {formatChangeLabel(
+                      analyticsData?.summary.totalTeachers.changeFromLastMonth,
+                    )} from last month
+                  </span>
+                </div>
               </CardContent>
             </Card>
           </div>
 
-          {/* BARCHART SECTION - Version 1 (with Summary Statistics) */}
+          {/* BARCHART SECTION */}
           <div className="space-y-4">
             <div className="border-b pb-2">
-              <h3 className="text-lg font-semibold text-blue-600">Chart Version 1: With Summary Statistics</h3>
-              <p className="text-sm text-muted-foreground">This version includes a legend and summary statistics below the chart</p>
+              <h3 className="text-lg font-semibold text-blue-600">Performance Distribution</h3>
+              <p className="text-sm text-muted-foreground">This chart includes a legend and summary statistics below the visualization.</p>
             </div>
             <BarGraphSection
-              institutions={institutions}
               grades={gradeOptions.map(g => ({ id: g.id, name: g.name }))}
               sections={sectionOptions.map(s => ({ id: s.id, name: s.name }))}
+              performanceData={performanceBySubjectData ?? undefined}
               onFilterChange={(filters) => {
-                console.log('Bar graph V1 filters changed:', filters);
-                // You can use these filters to update other parts of the analytics
-              }}
-            />
-          </div>
-
-          {/* BARCHART SECTION - Version 2 (with Legend) */}
-          <div className="space-y-4">
-            <div className="border-b pb-2">
-              <h3 className="text-lg font-semibold text-green-600">Chart Version 2: With Legend</h3>
-              <p className="text-sm text-muted-foreground">This version includes an integrated legend in the chart area</p>
-            </div>
-            <BarGraphSectionV2
-              institutions={institutions}
-              grades={gradeOptions.map(g => ({ id: g.id, name: g.name }))}
-              sections={sectionOptions.map(s => ({ id: s.id, name: s.name }))}
-              onFilterChange={(filters) => {
-                console.log('Bar graph V2 filters changed:', filters);
+                console.log('Bar graph filters changed:', filters);
                 // You can use these filters to update other parts of the analytics
               }}
             />

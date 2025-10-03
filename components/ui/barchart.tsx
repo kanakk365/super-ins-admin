@@ -1,6 +1,6 @@
 "use client"
 
-import { TrendingUp, Building2, GraduationCap, Users } from "lucide-react"
+import { TrendingUp, GraduationCap, Users } from "lucide-react"
 import { useState, useMemo } from "react"
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts"
 
@@ -63,17 +63,16 @@ const chartConfig = {
 } satisfies ChartConfig
 
 interface BarGraphSectionProps {
-  institutions?: Array<{id: string, name: string}>;
-  grades?: Array<{id: string, name: string}>;
-  sections?: Array<{id: string, name: string}>;
-  onFilterChange?: (filters: {institution?: string, grade?: string, section?: string}) => void;
+  grades?: Array<{ id: string; name: string }>;
+  sections?: Array<{ id: string; name: string }>;
+  performanceData?: StudentPerformanceData[];
+  onFilterChange?: (filters: {
+    grade?: string;
+    section?: string;
+  }) => void;
 }
 
 export function BarGraphSection({
-  institutions = [
-    { id: "inst-001", name: "Alpha Institute" },
-    { id: "inst-002", name: "Beta College" }
-  ],
   grades = [
     { id: "1", name: "Grade 1" },
     { id: "2", name: "Grade 2" },
@@ -86,22 +85,16 @@ export function BarGraphSection({
     { id: "B", name: "Section B" },
     { id: "C", name: "Section C" }
   ],
+  performanceData = baseChartData,
   onFilterChange
 }: BarGraphSectionProps) {
-  const [selectedInstitution, setSelectedInstitution] = useState<string>("");
   const [selectedGrade, setSelectedGrade] = useState<string>("");
   const [selectedSection, setSelectedSection] = useState<string>("");
   const [showFilters, setShowFilters] = useState(false);
 
   // Filter data based on selections
   const filteredData = useMemo(() => {
-    let data = [...baseChartData];
-
-    // Apply filters if selected
-    if (selectedInstitution) {
-      // In a real app, you'd filter based on actual institution data
-      // For now, we'll just use the base data
-    }
+    let data = [...performanceData];
 
     if (selectedGrade) {
       // Filter subjects based on grade level
@@ -145,13 +138,12 @@ export function BarGraphSection({
     }
 
     return data;
-  }, [selectedInstitution, selectedGrade, selectedSection]);
+  }, [performanceData, selectedGrade, selectedSection]);
 
-  const handleFilterChange = () => {
-    const filters: any = {};
-    if (selectedInstitution) filters.institution = selectedInstitution;
-    if (selectedGrade) filters.grade = selectedGrade;
-    if (selectedSection) filters.section = selectedSection;
+  const emitFilterChange = (nextGrade: string, nextSection: string) => {
+    const filters: { grade?: string; section?: string } = {};
+    if (nextGrade) filters.grade = nextGrade;
+    if (nextSection) filters.section = nextSection;
     onFilterChange?.(filters);
   };
 
@@ -177,7 +169,7 @@ export function BarGraphSection({
             >
               <Users className="h-4 w-4" />
               Filters
-              <Badge variant="secondary">{[selectedInstitution, selectedGrade, selectedSection].filter(Boolean).length}</Badge>
+              <Badge variant="secondary">{[selectedGrade, selectedSection].filter(Boolean).length}</Badge>
             </Button>
           </div>
         </CardHeader>
@@ -185,29 +177,6 @@ export function BarGraphSection({
         {showFilters && (
           <CardContent className="space-y-4">
             <div className="grid gap-4 md:grid-cols-3">
-              {/* Institution Filter */}
-              <div className="space-y-2">
-                <label className="text-sm font-medium flex items-center gap-2">
-                  <Building2 className="h-4 w-4" />
-                  Institution
-                </label>
-                <select
-                  value={selectedInstitution}
-                  onChange={(e) => {
-                    setSelectedInstitution(e.target.value);
-                    handleFilterChange();
-                  }}
-                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                >
-                  <option value="">All Institutions</option>
-                  {institutions.map((institution) => (
-                    <option key={institution.id} value={institution.id}>
-                      {institution.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
               {/* Grade Filter */}
               <div className="space-y-2">
                 <label className="text-sm font-medium flex items-center gap-2">
@@ -217,8 +186,9 @@ export function BarGraphSection({
                 <select
                   value={selectedGrade}
                   onChange={(e) => {
-                    setSelectedGrade(e.target.value);
-                    handleFilterChange();
+                    const value = e.target.value;
+                    setSelectedGrade(value);
+                    emitFilterChange(value, selectedSection);
                   }}
                   className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                 >
@@ -240,8 +210,9 @@ export function BarGraphSection({
                 <select
                   value={selectedSection}
                   onChange={(e) => {
-                    setSelectedSection(e.target.value);
-                    handleFilterChange();
+                    const value = e.target.value;
+                    setSelectedSection(value);
+                    emitFilterChange(selectedGrade, value);
                   }}
                   className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                 >
@@ -256,15 +227,9 @@ export function BarGraphSection({
             </div>
 
             {/* Active Filters Display */}
-            {(selectedInstitution || selectedGrade || selectedSection) && (
+            {(selectedGrade || selectedSection) && (
               <div className="flex flex-wrap gap-2 pt-2 border-t">
                 <span className="text-sm font-medium text-muted-foreground">Active filters:</span>
-                {selectedInstitution && (
-                  <Badge variant="outline" className="flex items-center gap-1">
-                    <Building2 className="h-3 w-3" />
-                    {institutions.find(i => i.id === selectedInstitution)?.name}
-                  </Badge>
-                )}
                 {selectedGrade && (
                   <Badge variant="outline" className="flex items-center gap-1">
                     <GraduationCap className="h-3 w-3" />

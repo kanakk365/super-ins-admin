@@ -121,6 +121,65 @@ export interface InstitutionStatsResponse {
   };
 }
 
+type CountWithChange = {
+  count: number;
+  changeFromLastMonth: number;
+};
+
+export interface SubjectPerformanceSummary {
+  subject: string;
+  excellent: number;
+  good: number;
+  normal: number;
+  dull: number;
+  total: number;
+}
+
+export interface SubjectCountSummary {
+  topic?: string;
+  subject?: string;
+  _count?: number;
+  count?: number;
+}
+
+export interface InstitutionAnalyticsStatsGroup {
+  examsBySubject: SubjectCountSummary[];
+  quizzesBySubject: SubjectCountSummary[];
+  projectsBySubject: SubjectCountSummary[];
+  customizedExamsBySubject: SubjectCountSummary[];
+  customizedQuizzesBySubject: SubjectCountSummary[];
+}
+
+export interface InstitutionAnalyticsStudent {
+  id: string;
+  name: string;
+  grade: string;
+  section: string;
+  email: string;
+  totalScore: string;
+  attendance: string;
+  status: string;
+  lastActive: string;
+}
+
+export interface InstitutionAnalyticsResponse {
+  statusCode: number;
+  success: boolean;
+  message: string;
+  data: {
+    summary: {
+      totalStudents: CountWithChange;
+      totalGrades: CountWithChange;
+      totalSections: CountWithChange;
+      totalTeachers: CountWithChange;
+    };
+    performanceBySubject: SubjectPerformanceSummary[];
+    totalStatistics: InstitutionAnalyticsStatsGroup;
+    todayStatistics: InstitutionAnalyticsStatsGroup;
+    students: InstitutionAnalyticsStudent[];
+  };
+}
+
 export interface Institution {
   id: string;
   name: string;
@@ -233,6 +292,20 @@ class ApiClient {
   ): Promise<InstitutionStatsResponse> {
     const response = await fetch(
       `${BASE_URL}/super-admin/institutions/${institutionId}/stats`,
+      {
+        method: "GET",
+        headers: this.getAuthHeaders(),
+      },
+    );
+
+    return this.handleResponse(response);
+  }
+
+  async getInstitutionAnalytics(
+    institutionId: string,
+  ): Promise<InstitutionAnalyticsResponse> {
+    const response = await fetch(
+      `${BASE_URL}/analytics/institution/${institutionId}`,
       {
         method: "GET",
         headers: this.getAuthHeaders(),

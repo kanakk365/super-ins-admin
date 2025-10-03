@@ -1,9 +1,20 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Building2, Users, BarChart3, TrendingUp } from "lucide-react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import {
+  Building2,
+  Users,
+  BarChart3,
+  Layers,
+  GraduationCap,
+  UserCheck,
+  ClipboardList,
+  ListChecks,
+  FileText,
+  PenTool,
+  type LucideIcon,
+} from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { apiClient } from "@/lib/api";
 import { useToast } from "@/components/ui/toaster";
 import { useRouter } from "next/navigation";
@@ -11,31 +22,40 @@ import { useRouter } from "next/navigation";
 interface DashboardStats {
   totalInstitutions: number;
   totalStudents: number;
-  activeInstitutions: number;
-  monthlyGrowth: number;
+  totalGrades: number;
+  totalSections: number;
   totalTeachers: number;
-  totalCourses: number;
+  activeStudents: number;
   totalExams: number;
-  totalProjects: number;
-  recentEnrollments: number;
-  completionRate: number;
-  averageScore: number;
-  activeUsers: number;
+  totalQuizzes: number;
+  customExams: number;
+  customQuizzes: number;
 }
 
 const mockStats: DashboardStats = {
   totalInstitutions: 24,
   totalStudents: 3847,
-  activeInstitutions: 22,
-  monthlyGrowth: 12.3,
+  totalGrades: 12,
+  totalSections: 48,
   totalTeachers: 156,
-  totalCourses: 89,
+  activeStudents: 2984,
   totalExams: 234,
-  totalProjects: 67,
-  recentEnrollments: 89,
-  completionRate: 87.5,
-  averageScore: 82.4,
-  activeUsers: 1247,
+  totalQuizzes: 142,
+  customExams: 68,
+  customQuizzes: 94,
+};
+
+type TrendType = "increase" | "decrease";
+
+type StatCard = {
+  name: string;
+  icon: LucideIcon;
+  accent: string;
+  metrics: Array<{ label?: string; value: string }>;
+  trend?: {
+    kind: TrendType;
+    text: string;
+  };
 };
 
 export default function Dashboard() {
@@ -82,8 +102,8 @@ export default function Dashboard() {
         </div>
 
         {/* Stats Grid Skeleton */}
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-4">
-          {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3">
+          {Array.from({ length: 9 }, (_, index) => index).map((i) => (
             <Card key={i} className="animate-pulse">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <div className="h-4 bg-gray-200 rounded w-24"></div>
@@ -174,70 +194,71 @@ export default function Dashboard() {
     );
   }
 
-  const statCards = [
+  const statCards: StatCard[] = [
     {
-      name: "Total Institutions",
-      value: stats.totalInstitutions.toString(),
+      name: "Institutions",
       icon: Building2,
-      change: "+3 this month",
-      changeType: "increase" as const,
-      color: "text-blue-600",
+      accent: "text-blue-600",
+      metrics: [{ value: stats.totalInstitutions.toString() }],
+      trend: { kind: "increase", text: "+2 new this quarter" },
     },
     {
-      name: "Total Students",
-      value: stats.totalStudents.toLocaleString(),
+      name: "Students",
       icon: Users,
-      change: "+15.2% from last month",
-      changeType: "increase" as const,
-      color: "text-green-600",
+      accent: "text-emerald-600",
+      metrics: [{ value: stats.totalStudents.toLocaleString() }],
+      trend: { kind: "increase", text: "+4.6% vs last month" },
     },
     {
-      name: "Active Users",
-      value: stats.activeUsers.toLocaleString(),
-      icon: TrendingUp,
-      change: "+8.7% this week",
-      changeType: "increase" as const,
-      color: "text-purple-600",
+      name: "Grades & Sections",
+      icon: Layers,
+      accent: "text-amber-600",
+      metrics: [
+        { label: "Grades", value: stats.totalGrades.toString() },
+        { label: "Sections", value: stats.totalSections.toString() },
+      ],
     },
     {
-      name: "Completion Rate",
-      value: `${stats.completionRate}%`,
-      icon: BarChart3,
-      change: "+2.1% from last month",
-      changeType: "increase" as const,
-      color: "text-emerald-600",
+      name: "Teachers",
+      icon: GraduationCap,
+      accent: "text-indigo-600",
+      metrics: [{ value: stats.totalTeachers.toString() }],
+      trend: { kind: "increase", text: "+5 joined this term" },
     },
     {
-      name: "Total Teachers",
-      value: stats.totalTeachers.toString(),
-      icon: Users,
-      change: "+5 new teachers",
-      changeType: "increase" as const,
-      color: "text-indigo-600",
+      name: "Active Students",
+      icon: UserCheck,
+      accent: "text-purple-600",
+      metrics: [{ value: stats.activeStudents.toLocaleString() }],
+      trend: { kind: "increase", text: "+3.1% this week" },
     },
     {
-      name: "Total Courses",
-      value: stats.totalCourses.toString(),
-      icon: Building2,
-      change: "+12 this quarter",
-      changeType: "increase" as const,
-      color: "text-teal-600",
+      name: "Exams",
+      icon: ClipboardList,
+      accent: "text-sky-600",
+      metrics: [{ value: stats.totalExams.toString() }],
+      trend: { kind: "increase", text: "+12 scheduled" },
     },
     {
-      name: "Average Score",
-      value: `${stats.averageScore}%`,
-      icon: BarChart3,
-      change: "+3.2 points",
-      changeType: "increase" as const,
-      color: "text-orange-600",
+      name: "Quizzes",
+      icon: ListChecks,
+      accent: "text-orange-600",
+      metrics: [{ value: stats.totalQuizzes.toString() }],
+      trend: { kind: "increase", text: "+8 published" },
     },
     {
-      name: "Recent Enrollments",
-      value: stats.recentEnrollments.toString(),
-      icon: Users,
-      change: "This month",
-      changeType: "increase" as const,
-      color: "text-pink-600",
+      name: "Custom Exams",
+      icon: FileText,
+      accent: "text-rose-600",
+      metrics: [{ value: stats.customExams.toString() }],
+      trend: { kind: "increase", text: "+3 this month" },
+    },
+    {
+      name: "Custom Quizzes",
+      icon: PenTool,
+      accent: "text-fuchsia-600",
+      metrics: [{ value: stats.customQuizzes.toString() }],
+      trend: { kind: "increase", text: "+5 drafted" },
     },
   ];
 
@@ -252,7 +273,7 @@ export default function Dashboard() {
       </div>
 
       {/* Stats Grid */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3">
         {statCards.map((stat) => (
           <Card
             key={stat.name}
@@ -261,22 +282,52 @@ export default function Dashboard() {
             <div className="pointer-events-none absolute -right-6 -top-6 h-24 w-24 rounded-full bg-gradient-to-br from-primary/10 to-transparent blur-xl" />
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">{stat.name}</CardTitle>
-              <div className="rounded-md p-2 bg-gradient-to-br from-gray-100 to-transparent dark:from-white/10">
-                <stat.icon className={`h-4 w-4 ${stat.color}`} />
+              <div className="rounded-md bg-gradient-to-br from-gray-100 to-transparent p-2 dark:from-white/10">
+                <stat.icon className={`h-4 w-4 ${stat.accent}`} />
               </div>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold tracking-tight">{stat.value}</div>
-              <div className="mt-2">
-                <span
-                  className={
-                    stat.changeType === "increase"
-                      ? "inline-flex items-center rounded-full border border-green-200 bg-green-50 px-2 py-0.5 text-[10px] font-medium text-green-700 dark:border-green-900/40 dark:bg-green-950/40 dark:text-green-400"
-                      : "inline-flex items-center rounded-full border border-red-200 bg-red-50 px-2 py-0.5 text-[10px] font-medium text-red-700 dark:border-red-900/40 dark:bg-red-950/40 dark:text-red-400"
-                  }
-                >
-                  {stat.change}
-                </span>
+              <div className="space-y-3">
+                <div>
+                  <div className="text-2xl font-bold tracking-tight">
+                    {stat.metrics[0]?.value}
+                  </div>
+                  {stat.metrics[0]?.label ? (
+                    <p className="mt-1 text-xs uppercase tracking-wide text-muted-foreground">
+                      {stat.metrics[0].label}
+                    </p>
+                  ) : null}
+                </div>
+
+                {stat.metrics.length > 1 ? (
+                  <div className="grid grid-cols-2 gap-2">
+                    {stat.metrics.slice(1).map((metric) => (
+                      <div
+                        key={`${stat.name}-${metric.label ?? metric.value}`}
+                        className="rounded-md border border-gray-100/70 px-3 py-2 text-xs dark:border-white/10"
+                      >
+                        <p className="text-sm font-semibold text-foreground">{metric.value}</p>
+                        {metric.label ? (
+                          <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                            {metric.label}
+                          </p>
+                        ) : null}
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
+
+                {stat.trend ? (
+                  <span
+                    className={
+                      stat.trend.kind === "increase"
+                        ? "inline-flex items-center rounded-full border border-green-200 bg-green-50 px-2 py-0.5 text-[10px] font-medium text-green-700 dark:border-green-900/40 dark:bg-green-950/40 dark:text-green-400"
+                        : "inline-flex items-center rounded-full border border-red-200 bg-red-50 px-2 py-0.5 text-[10px] font-medium text-red-700 dark:border-red-900/40 dark:bg-red-950/40 dark:text-red-400"
+                    }
+                  >
+                    {stat.trend.text}
+                  </span>
+                ) : null}
               </div>
             </CardContent>
           </Card>
@@ -478,161 +529,7 @@ export default function Dashboard() {
         </Card>
       </div>
 
-      {/* Recent Activity */}
-      <div className="grid gap-6 md:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center">
-              <BarChart3 className="h-5 w-5 mr-2 text-blue-600" />
-              Recent Activity
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="flex items-start space-x-3 rounded-lg border border-gray-100 p-3 transition-colors hover:bg-gray-50 dark:border-white/10 dark:hover:bg-neutral-900/40">
-              <div className="mt-1.5 h-2 w-2 rounded-full bg-green-500 shadow-[0_0_0_3px_rgba(34,197,94,0.15)]"></div>
-              <div className="flex-1">
-                <p className="text-sm font-medium">New student enrollment</p>
-                <p className="text-xs text-muted-foreground">Sarah Johnson joined Mathematics course</p>
-                <p className="text-[11px] text-muted-foreground">2 hours ago</p>
-              </div>
-            </div>
-            <div className="flex items-start space-x-3 rounded-lg border border-gray-100 p-3 transition-colors hover:bg-gray-50 dark:border-white/10 dark:hover:bg-neutral-900/40">
-              <div className="mt-1.5 h-2 w-2 rounded-full bg-blue-500 shadow-[0_0_0_3px_rgba(59,130,246,0.15)]"></div>
-              <div className="flex-1">
-                <p className="text-sm font-medium">Exam completed</p>
-                <p className="text-xs text-muted-foreground">Physics final exam by 45 students</p>
-                <p className="text-[11px] text-muted-foreground">4 hours ago</p>
-              </div>
-            </div>
-            <div className="flex items-start space-x-3 rounded-lg border border-gray-100 p-3 transition-colors hover:bg-gray-50 dark:border-white/10 dark:hover:bg-neutral-900/40">
-              <div className="mt-1.5 h-2 w-2 rounded-full bg-purple-500 shadow-[0_0_0_3px_rgba(168,85,247,0.15)]"></div>
-              <div className="flex-1">
-                <p className="text-sm font-medium">New institution added</p>
-                <p className="text-xs text-muted-foreground">Lincoln High School joined the platform</p>
-                <p className="text-[11px] text-muted-foreground">1 day ago</p>
-              </div>
-            </div>
-            <div className="flex items-start space-x-3 rounded-lg border border-gray-100 p-3 transition-colors hover:bg-gray-50 dark:border-white/10 dark:hover:bg-neutral-900/40">
-              <div className="mt-1.5 h-2 w-2 rounded-full bg-orange-500 shadow-[0_0_0_3px_rgba(249,115,22,0.15)]"></div>
-              <div className="flex-1">
-                <p className="text-sm font-medium">Course completed</p>
-                <p className="text-xs text-muted-foreground">Advanced Chemistry course by 28 students</p>
-                <p className="text-[11px] text-muted-foreground">2 days ago</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center">
-              <Building2 className="h-5 w-5 mr-2 text-green-600" />
-              Top Performing Institutions
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="rounded-lg border border-gray-100 p-3 transition-colors hover:bg-gray-50 dark:border-white/10 dark:hover:bg-neutral-900/40">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-r from-blue-500 to-purple-600 text-white text-sm font-bold">SM</div>
-                  <div>
-                    <p className="text-sm font-medium">Springfield Middle School</p>
-                    <p className="text-xs text-muted-foreground">245 students</p>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <p className="text-sm font-bold text-green-600">94.2%</p>
-                  <p className="text-xs text-muted-foreground">completion</p>
-                </div>
-              </div>
-              <div className="mt-3 h-1.5 w-full rounded-full bg-gray-200 dark:bg-neutral-800">
-                <div className="h-1.5 rounded-full bg-green-500" style={{ width: '94.2%' }}></div>
-              </div>
-            </div>
-            <div className="rounded-lg border border-gray-100 p-3 transition-colors hover:bg-gray-50 dark:border-white/10 dark:hover:bg-neutral-900/40">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-r from-green-500 to-teal-600 text-white text-sm font-bold">RH</div>
-                  <div>
-                    <p className="text-sm font-medium">Riverside High</p>
-                    <p className="text-xs text-muted-foreground">387 students</p>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <p className="text-sm font-bold text-green-600">91.8%</p>
-                  <p className="text-xs text-muted-foreground">completion</p>
-                </div>
-              </div>
-              <div className="mt-3 h-1.5 w-full rounded-full bg-gray-200 dark:bg-neutral-800">
-                <div className="h-1.5 rounded-full bg-green-500" style={{ width: '91.8%' }}></div>
-              </div>
-            </div>
-            <div className="rounded-lg border border-gray-100 p-3 transition-colors hover:bg-gray-50 dark:border-white/10 dark:hover:bg-neutral-900/40">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-r from-purple-500 to-pink-600 text-white text-sm font-bold">WE</div>
-                  <div>
-                    <p className="text-sm font-medium">Westfield Elementary</p>
-                    <p className="text-xs text-muted-foreground">189 students</p>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <p className="text-sm font-bold text-green-600">89.5%</p>
-                  <p className="text-xs text-muted-foreground">completion</p>
-                </div>
-              </div>
-              <div className="mt-3 h-1.5 w-full rounded-full bg-gray-200 dark:bg-neutral-800">
-                <div className="h-1.5 rounded-full bg-green-500" style={{ width: '89.5%' }}></div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Performance Overview */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center">
-            <TrendingUp className="h-5 w-5 mr-2 text-indigo-600" />
-            Performance Overview
-          </CardTitle>
-          <CardDescription>Monthly performance metrics for the last 6 months</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-6 md:grid-cols-3">
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium">Student Enrollment</span>
-                <span className="text-sm text-green-600 font-semibold">+15.2%</span>
-              </div>
-              <div className="w-full bg-gray-200 rounded-full h-2">
-                <div className="bg-green-500 h-2 rounded-full" style={{ width: '85%' }}></div>
-              </div>
-              <p className="text-xs text-muted-foreground">3,847 students this month</p>
-            </div>
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium">Course Completion</span>
-                <span className="text-sm text-blue-600 font-semibold">+8.7%</span>
-              </div>
-              <div className="w-full bg-gray-200 rounded-full h-2">
-                <div className="bg-blue-500 h-2 rounded-full" style={{ width: '92%' }}></div>
-              </div>
-              <p className="text-xs text-muted-foreground">87.5% completion rate</p>
-            </div>
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium">Average Scores</span>
-                <span className="text-sm text-purple-600 font-semibold">+3.2%</span>
-              </div>
-              <div className="w-full bg-gray-200 rounded-full h-2">
-                <div className="bg-purple-500 h-2 rounded-full" style={{ width: '82%' }}></div>
-              </div>
-              <p className="text-xs text-muted-foreground">82.4% average score</p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 }

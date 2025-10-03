@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Building2,
   Eye,
@@ -14,63 +14,57 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { apiClient, Institution, InstitutionsResponse } from "@/lib/api";
+import { apiClient } from "@/lib/api";
 import { useToast } from "@/components/ui/toaster";
 import { useRouter } from "next/navigation";
+import { useInstitutions } from "@/lib/hooks/useInstitutions";
 
 export default function InstitutionsPage() {
-  const [institutions, setInstitutions] = useState<Institution[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isAuthed, setIsAuthed] = useState(false);
+  const [authChecked, setAuthChecked] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
-  const [currentPage, setCurrentPage] = useState(1);
-  const [pagination, setPagination] = useState({
-    page: 1,
-    limit: 10,
-    total: 0,
-    totalPages: 0,
-  });
 
   const { toast } = useToast();
   const router = useRouter();
 
+  const {
+    institutions,
+    isLoading,
+    error,
+    pagination,
+    page,
+    setPage,
+    limit,
+  } = useInstitutions({ initialLimit: 10, enabled: isAuthed });
+
   useEffect(() => {
-    const checkAuth = () => {
-      if (!apiClient.isAuthenticated()) {
-        router.push("/");
-        return false;
-      }
-      return true;
-    };
+    const authed = apiClient.isAuthenticated();
+    if (!authed) {
+      router.push("/");
+    } else {
+      setIsAuthed(true);
+    }
+    setAuthChecked(true);
+  }, [router]);
 
-    const loadInstitutions = async () => {
-      try {
-        if (!checkAuth()) return;
+  useEffect(() => {
+    if (!error) return;
 
-        setIsLoading(true);
-        const response = await apiClient.getMyInstitutions(currentPage, 10);
-        setInstitutions(response.data.data);
-        setPagination(response.data.meta);
-      } catch (error) {
-        toast({
-          title: "Error",
-          description:
-            error instanceof Error
-              ? error.message
-              : "Failed to load institutions",
-          variant: "destructive",
-        });
-      } finally {
-        setIsLoading(false);
-      }
-    };
+    toast({
+      title: "Error",
+      description: error.message,
+      variant: "destructive",
+    });
+  }, [error, toast]);
 
-    loadInstitutions();
-  }, [currentPage, toast, router]);
-
-  const filteredInstitutions = institutions.filter(
-    (institution) =>
-      institution.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      institution.email.toLowerCase().includes(searchTerm.toLowerCase()),
+  const filteredInstitutions = useMemo(
+    () =>
+      institutions.filter(
+        (institution) =>
+          institution.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          institution.email.toLowerCase().includes(searchTerm.toLowerCase()),
+      ),
+    [institutions, searchTerm],
   );
 
   const handleViewInstitution = (institutionId: string) => {
@@ -78,43 +72,23 @@ export default function InstitutionsPage() {
   };
 
   const handlePreviousPage = () => {
-    if (currentPage > 1) {
-      setCurrentPage(currentPage - 1);
+    if (page > 1) {
+      setPage(page - 1);
     }
   };
 
   const handleNextPage = () => {
-    if (currentPage < pagination.totalPages) {
-      setCurrentPage(currentPage + 1);
+    if (page < pagination.totalPages) {
+      setPage(page + 1);
     }
   };
 
-  const loadInstitutions = async () => {
-    try {
-      if (!apiClient.isAuthenticated()) {
-        router.push("/");
-        return;
-      }
+  const showLoading = !authChecked || isLoading;
 
-      setIsLoading(true);
-      const response = await apiClient.getMyInstitutions(currentPage, 10);
-      setInstitutions(response.data.data);
-      setPagination(response.data.meta);
-    } catch (error) {
-      toast({
-        title: "Error",
-        description:
-          error instanceof Error
-            ? error.message
-            : "Failed to load institutions",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const fromItem = pagination.total === 0 ? 0 : (page - 1) * limit + 1;
+  const toItem = Math.min(page * limit, pagination.total);
 
-  if (isLoading) {
+  if (showLoading) {
     return (
       <div className="space-y-8 ">
         <div className="space-y-2">
@@ -250,28 +224,26 @@ export default function InstitutionsPage() {
       {pagination.totalPages > 1 && (
         <div className="flex items-center justify-between">
           <div className="text-sm text-muted-foreground">
-            Showing {(currentPage - 1) * pagination.limit + 1} to{" "}
-            {Math.min(currentPage * pagination.limit, pagination.total)} of{" "}
-            {pagination.total} institutions
+            Showing {fromItem} to {toItem} of {pagination.total} institutions
           </div>
           <div className="flex items-center space-x-2">
             <Button
               variant="outline"
               size="sm"
               onClick={handlePreviousPage}
-              disabled={currentPage === 1}
+              disabled={page === 1}
             >
               <ChevronLeft className="h-4 w-4 mr-1" />
               Previous
             </Button>
             <span className="text-sm">
-              Page {currentPage} of {pagination.totalPages}
+              Page {page} of {pagination.totalPages}
             </span>
             <Button
               variant="outline"
               size="sm"
               onClick={handleNextPage}
-              disabled={currentPage === pagination.totalPages}
+              disabled={page === pagination.totalPages}
             >
               Next
               <ChevronRight className="h-4 w-4 ml-1" />
